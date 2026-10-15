@@ -17,10 +17,9 @@
    - 選 **Public**
    - 按 **Create repository**
 3. 在新頁面按 **uploading an existing file**，把這個資料夾裡的**所有檔案**拖進去
-   （`index.html`、`config.js`、`images` 資料夾、`supabase.sql`、`README.md`、`.nojekyll`），
+   （`index.html`、`config.js`、所有 `.jpg` 圖片、`supabase.sql`、`README.md`、`.nojekyll`），
    最下面按 **Commit changes**。
-   - 如果拖資料夾沒反應，先把 `images` 裡的圖片一起選取拖進去，
-     或解壓縮後把整個資料夾內容全選拖曳。
+   - 圖片要和 `index.html` 放在同一層；解壓縮後可直接把全部內容一起選取拖曳。
 4. 上方 **Settings → Pages**：
    - Source 選 **Deploy from a branch**
    - Branch 選 **main**、資料夾選 **/(root)**，按 **Save**
@@ -28,8 +27,9 @@
    `https://你的帳號.github.io/my-oc-site/`
    這就是可以分享給任何人的公開網址。
 
-網址打開後可以先逛逛。進入編輯：在網址最後加上 `#edit`，
-例如 `https://你的帳號.github.io/my-oc-site/#edit`，就會出現「✎ 編輯網站」按鈕。
+網址打開後可以先逛逛。一般公開網址不會顯示編輯入口。
+在尚未完成 Supabase 設定前，請直接用瀏覽器開啟電腦裡的 `index.html` 編輯；
+公開網站會鎖住編輯模式，避免訪客誤以為可以修改網站。
 
 ---
 
@@ -58,7 +58,7 @@
    （anon key 本來就是設計成可以公開的；真正的保護是第 2 步的權限設定。）
 
 ### 之後怎麼用
-- 網址後面加 `#edit` → 按「✎ 編輯網站」→ 用第 3 步的信箱密碼登入。
+- 完成 Supabase 設定後，在網址後面加 `#edit` → 按「✎ 編輯網站」→ 用第 3 步的信箱密碼登入。
 - 改完按上方的 **☁ 發布**，所有訪客就會看到新內容。
 - **留言**分頁：看到訪客留言、按「待回覆」的對話就能回覆。
 - 訪客只看得到**自己**的留言與你的回覆，看不到別人的。
