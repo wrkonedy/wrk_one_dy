@@ -88,7 +88,7 @@ body.public-game #vplay{display:block!important}
 <div class="cloud-grid"><div><label>電子郵件</label><input id="cloud-email" type="email" autocomplete="email"></div><div><label>密碼</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="6"></div></div>
 <div class="row"><button class="btn" onclick="cloudAuth('login')">登入</button><button class="chip" onclick="cloudAuth('signup')">註冊</button><button class="chip" onclick="cloudLogout()">登出</button></div>
 <p class="status" id="cloud-status">尚未登入</p><div class="row"><button class="btn" onclick="saveCloud()">儲存雲端草稿</button><button class="chip" onclick="listCloud()">我的專案</button><select id="cloud-projects" style="flex:1;min-width:180px" onchange="loadCloud(this.value)"><option value="">選擇專案…</option></select></div>
-<div class="row"><button class="chip" onclick="cloudProjectId='';$('cloud-projects').value='';cloudMessage('下次儲存時建立新專案。')">另存為新專案</button></div>
+<div class="row"><button class="chip" onclick="cloudProjectId='';sessionStorage.removeItem('rpg-cloud-project');$('cloud-projects').value='';cloudMessage('下次儲存時建立新專案。')">另存為新專案</button></div>
 <p class="hint">第一次儲存會建立新專案；載入其他專案前請先儲存目前修改。素材會獨立上傳至 Supabase Storage。</p></div>
 <div class="box"><h2>🚀 發布遊戲</h2><label style="margin-top:0">遊戲名稱</label><input id="title" oninput="g.title=this.value;sv()"><div class="row"><button class="btn alt" onclick="publishCloud()">發布目前版本</button><button class="chip" onclick="unpublishCloud()">下架</button></div><p class="status" id="publish-status">尚未發布</p><input id="public-url" readonly placeholder="發布後顯示遊玩連結"><div class="row"><button class="chip" onclick="copyPublicUrl()">複製遊玩連結</button><button class="chip" onclick="openPublicUrl()">開啟遊戲</button></div></div>
 <div class="box"><h2>📦 離線備份</h2>
@@ -176,7 +176,9 @@ function selUI(){const s=$('sel');if(!sel){s.innerHTML='<h2>編輯區</h2><p cla
  const e=sel.e;s.innerHTML=`<h2>事件設定</h2><label>名字</label><input value="${esc(e.name)}" oninput="sel.e.name=this.value;sv()">
  <div class="row"><div style="flex:1"><label>外觀符號</label><input value="${esc(e.emo)}" maxlength=2 oninput="sel.e.emo=this.value;sv()"></div><div style="flex:2"><label>或使用人物圖</label><select onchange="sel.e.ch=this.value;sv()">${O([['','（不用）'],...AS('ch')],e.ch)}</select></div></div>
  <label>觸發方式</label><select onchange="sel.e.trig=this.value;sv()">${O([['ok','碰到時（對話、開箱、戰鬥）'],['touch','踩上去時'],['auto','進入地圖自動執行']],e.trig)}</select>
- <label>出現條件：開關名稱（留空＝一直存在）</label><input value="${esc(e.need)}" oninput="sel.e.need=this.value;sv()">
+ <label>出現條件：開關名稱（留空＝不檢查）</label><input value="${esc(e.need)}" oninput="sel.e.need=this.value;sv()">
+ <div class="row"><div style="flex:2"><label>變數名稱（留空＝不檢查）</label><input value="${esc(e.needVar||'')}" oninput="sel.e.needVar=this.value;sv()"></div><div style="flex:1"><label>至少達到</label><input type="number" value="${esc(e.needVal??1)}" oninput="sel.e.needVal=+this.value||0;sv()"></div></div>
+ <label>需要線索</label><select onchange="sel.e.needClue=this.value;sv()">${O([['','（不檢查）'],...g.clues.map(c=>[c.id,c.n])],e.needClue||'')}</select>
  <label><input type="checkbox" ${e.pass?'checked':''} onchange="sel.e.pass=this.checked?1:0;sv()"> 可穿越（不擋路）</label>
  <h2>事件指令（由上往下依序執行）</h2><div id="cmds"></div>
  <select onchange="addCmd(this.value);this.value=''"><option value="">＋新增指令…</option>${Object.entries(CS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select>
@@ -222,7 +224,7 @@ let R,P,busy=0,held=null,pend=null,last=0;const bgmEl=new Audio();bgmEl.loop=tru
 const ask0=(t,b)=>new Promise(r=>{$('ovT').textContent=t;$('ovB').innerHTML='';b.forEach((n,i)=>{const k=document.createElement('button');k.className='btn';k.textContent=n;k.onclick=()=>{pend=null;$('ovl').style.display='none';r(i)};$('ovB').appendChild(k)});pend=b.length==1?()=>$('ovB').firstChild.click():null;$('ovl').style.display='block'});
 const say=t=>ask(t,['▶ 繼續']);
 function snd(id,loop){const a=g.assets[id];if(loop){bgmEl.pause();if(a){bgmEl.src=a.src;bgmEl.play().catch(()=>{})}}else if(a)new Audio(a.src).play().catch(()=>{})}
-const vis=(e,i)=>!R.rem[R.m+':'+i]&&(!e.need||R.sw[e.need]);
+const vis=(e,i)=>!R.rem[R.m+':'+i]&&(!e.need||R.sw[e.need])&&(!e.needVar||(R.vr[e.needVar]||0)>=+(e.needVal??1))&&(!e.needClue||R.cl[e.needClue]);
 async function startPlay(){R={sw:{},gold:0,hp:30,rem:{},m:0,inv:{},vr:{},cl:{},log:[]};const s=g.start;let o=null;try{o=JSON.parse(localStorage.getItem('rpgsave'))}catch(e){}
  busy=0;P={x:s.x,y:s.y,sx:s.x,sy:s.y,fx:s.x,fy:s.y,dir:0,mv:0,t:0,ov:null};R.m=g.maps[s.m]?s.m:0;let x=s.x,y=s.y;
  if(o&&o.t==g.title){busy=1;const a=await ask('找到存檔，要繼續嗎？',['📂 繼續存檔','🆕 新遊戲']);busy=0;if(a==0){R=o.R;R.vr=R.vr||{};R.cl=R.cl||{};x=o.x;y=o.y}}
@@ -296,14 +298,14 @@ function tpl(){if(sel.e.cmds.length&&!confirm('會取代目前的指令，確定
 const TB=[['map','🗺 地圖'],['as','🎨 素材'],['ch','🧍 人物'],['au','🎵 音效'],['db','📦 資料庫'],['play','▶ 試玩'],['pub','🚀 發布'],['help','❓ 教學']];
 $('tabs').innerHTML=TB.map(([k,n])=>`<button id="t${k}" onclick="go('${k}')">${n}</button>`).join('');
 function go(k){mode=k;TB.forEach(([q])=>{$('v'+q).classList.toggle('hide',q!=k);$('t'+q).classList.toggle('on',q==k)});bgmEl.pause();held=null;$('ovl').style.display='none';pend=null;
- if(k=='map'){mapUI();selUI()}if(k=='as')assetUI();if(k=='ch'){chUI();pUI()}if(k=='au')auUI();if(k=='db')dbUI();if(k=='play')startPlay();if(k=='pub'){$('title').value=g.title;gen()}}
+ if(k=='map'){mapUI();selUI()}if(k=='as')assetUI();if(k=='ch'){chUI();pUI()}if(k=='au')auUI();if(k=='db')dbUI();if(k=='play')startPlay();if(k=='pub'){$('title').value=g.title;gen();if(cloudSession){listCloud();publicationStatus().catch(e=>cloudMessage(e.message,'publish-status'))}}}
 function gen(){const s=btoa(unescape(encodeURIComponent(JSON.stringify(g))));$('code').value=s;$('pm').textContent='代碼已產生（約 '+Math.round(s.length/1024)+' KB），按「複製代碼」即可分享。'}
 async function cp(){$('code').select();try{await navigator.clipboard.writeText($('code').value);$('pm').textContent='已複製！'}catch(e){$('pm').textContent='請長按文字框，手動全選複製。'}}
 function ld(){try{const o=JSON.parse(decodeURIComponent(escape(atob($('code').value.trim()))));if(!o.maps||!o.assets)throw 0;g=o;ini();mi=0;sel=null;aSel=cSel='';sv();$('pm').textContent='載入成功！到「▶ 試玩」開始。'}catch(e){$('pm').textContent='代碼無法讀取，請確認完整貼上。'}}
 // Cloud drafts and immutable published snapshots use separate RLS-protected tables.
 const SB_URL='https://bwgifvzudghajbtknasu.supabase.co';
 const SB_KEY='sb_publishable_xRACXZEUwnyz9yrpo0Y1Ow_y3cePCGI';
-let cloudSession=null,cloudProjectId='',cloudBusy=false;
+let cloudSession=null,cloudProjectId=sessionStorage.getItem('rpg-cloud-project')||'',cloudBusy=false;
 try{cloudSession=JSON.parse(sessionStorage.getItem('rpg-cloud-session')||'null')}catch(e){}
 const cloudMessage=(s,id='cloud-status')=>{$(id).textContent=s};
 async function sbFetch(path,options={}){
@@ -330,13 +332,13 @@ async function cloudAuth(kind){
  if(!s.access_token){cloudMessage('註冊成功。請先到信箱完成驗證，再按「登入」。');return}
  setSession(s);await listCloud();}catch(e){cloudMessage('登入失敗：'+e.message)}
 }
-function cloudLogout(){cloudSession=null;cloudProjectId='';sessionStorage.removeItem('rpg-cloud-session');cloudMessage('已登出');$('cloud-projects').innerHTML='<option value="">選擇專案…</option>'}
+function cloudLogout(){cloudSession=null;cloudProjectId='';sessionStorage.removeItem('rpg-cloud-session');sessionStorage.removeItem('rpg-cloud-project');cloudMessage('已登出');$('cloud-projects').innerHTML='<option value="">選擇專案…</option>'}
 async function listCloud(){try{await validSession();const rows=await sbFetch('/rest/v1/rpg_projects?select=id,title,updated_at&order=updated_at.desc');
  $('cloud-projects').innerHTML='<option value="">選擇專案…</option>'+rows.map(p=>`<option value="${esc(p.id)}" ${p.id==cloudProjectId?'selected':''}>${esc(p.title)} · ${new Date(p.updated_at).toLocaleString('zh-TW')}</option>`).join('');
  cloudMessage('找到 '+rows.length+' 個專案。')}catch(e){cloudMessage('無法列出專案：'+e.message)}}
 async function loadCloud(id){if(!id)return;if(!confirm('載入雲端專案會取代目前畫面中的內容。尚未儲存的修改會遺失，確定嗎？')){$('cloud-projects').value=cloudProjectId;return}
  try{await validSession();const rows=await sbFetch('/rest/v1/rpg_projects?id=eq.'+encodeURIComponent(id)+'&select=id,data');if(!rows.length)throw new Error('找不到專案');
- const data=rows[0].data;if(!data?.maps?.length||!data.assets)throw new Error('專案資料不完整');g=data;ini();cloudProjectId=id;mi=0;sel=null;aSel=cSel='';hist=[];redoHist=[];sv();$('title').value=g.title;cloudMessage('已載入：'+g.title);await publicationStatus();}
+ const data=rows[0].data;if(!data?.maps?.length||!data.assets)throw new Error('專案資料不完整');g=data;ini();cloudProjectId=id;sessionStorage.setItem('rpg-cloud-project',id);mi=0;sel=null;aSel=cSel='';hist=[];redoHist=[];sv();$('title').value=g.title;cloudMessage('已載入：'+g.title);await publicationStatus();}
  catch(e){cloudMessage('載入失敗：'+e.message)}}
 async function uploadDataUrl(src,path){const blob=await (await fetch(src)).blob();const mime=blob.type||'application/octet-stream';
  await sbFetch('/storage/v1/object/rpg-assets/'+path,{method:'POST',headers:{'Content-Type':mime,'Cache-Control':'3600'},body:blob});
@@ -354,7 +356,7 @@ async function saveCloud(){if(cloudBusy)return null;cloudBusy=true;
   }
  }
  const rows=await sbFetch('/rest/v1/rpg_projects?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id,owner_id:userId,title:data.title||'未命名遊戲',data,updated_at:new Date().toISOString()})});
- if(!rows?.length)throw new Error('資料庫未確認儲存');cloudProjectId=id;g=data;ini();sv();cloudMessage('草稿已儲存到雲端，素材 '+uploaded+' 個。');await listCloud();return id;
+ if(!rows?.length)throw new Error('資料庫未確認儲存');cloudProjectId=id;sessionStorage.setItem('rpg-cloud-project',id);g=data;ini();sv();cloudMessage('草稿已儲存到雲端，素材 '+uploaded+' 個。');await listCloud();return id;
  }catch(e){cloudMessage('儲存失敗：'+e.message);return null}finally{cloudBusy=false}}
 const gameUrl=id=>location.protocol=='file:'?'':new URL('?game='+encodeURIComponent(id),location.href).href;
 async function publicationStatus(){if(!cloudProjectId){$('public-url').value='';cloudMessage('尚未發布','publish-status');return}
