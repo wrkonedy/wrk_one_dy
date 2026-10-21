@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>像素工坊 · RPG 製作器</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3efe6;--panel:#fffdf7;--ink:#2b2433;--mute:#7a7184;--line:#d9d0bf;--acc:#5b3fd1;--acc2:#e8a317;--on:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1726;--panel:#262034;--ink:#f1ecfa;--mute:#a79fb8;--line:#3b3350;--acc:#9a85ff;--acc2:#f2b73a;--on:#1b1726}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:12px}
+h1{font:700 20px/1.2 "Noto Serif TC","PMingLiU",serif;margin:4px 0 10px;letter-spacing:.04em}
+.tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto}
+.tabs button{flex:1;white-space:nowrap;padding:9px 8px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--acc);color:var(--on);border-color:var(--acc)}
+.box{background:var(--panel);border:2px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+h2{font-size:14px;margin:8px 0;color:var(--mute);font-weight:700}
+canvas{width:100%;display:block;border:3px solid var(--ink);border-radius:6px;touch-action:none;background:#000}
+.chips,.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.chip{padding:7px 10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer;min-height:38px}
+.chip.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
+.chip i{display:inline-block;width:16px;height:16px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid rgba(0,0,0,.3)}
+.chip img{vertical-align:middle;object-fit:cover;border-radius:3px}
+label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
+input,textarea,select{width:100%;padding:8px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input[type=checkbox]{width:auto}
+textarea{min-height:90px}
+.btn{padding:9px 13px;border:0;border-radius:8px;background:var(--acc);color:var(--on);font:inherit;font-weight:700;cursor:pointer}
+.btn.alt{background:var(--acc2);color:#2b2433}.btn.gr{background:var(--line);color:var(--ink)}
+.hint{color:var(--mute);font-size:13px;margin:6px 0 0}
+.cmd{border:2px solid var(--line);border-radius:8px;padding:8px;margin:6px 0;background:var(--bg)}
+.hud{display:flex;justify-content:space-between;font-weight:700;margin-bottom:6px}
+.stage{position:relative}
+.ovl{position:absolute;left:8px;right:8px;bottom:8px;background:var(--panel);color:var(--ink);border:3px solid var(--ink);border-radius:8px;padding:10px;display:none}
+#ovT{margin:0 0 6px;white-space:pre-line}
+.pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,52px);gap:6px;justify-content:center;margin-top:10px}
+.pad button{font-size:22px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;touch-action:none}
+.hide{display:none}
+body.public-game .tabs,body.public-game #warn,body.public-game #vmap,body.public-game #vas,body.public-game #vch,body.public-game #vau,body.public-game #vdb,body.public-game #vpub,body.public-game #vhelp{display:none!important}
+body.public-game #vplay{display:block!important}
+.cloud-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.cloud-grid label{margin-top:0}
+.status{padding:8px;border-radius:8px;background:var(--bg);min-height:38px}
+.nm{position:absolute;top:-16px;left:12px;background:var(--acc);color:var(--on);padding:1px 14px;border-radius:8px;font-weight:700;display:none}
+#ovP{position:absolute;bottom:100%;max-height:240px;max-width:48%;object-fit:contain;display:none;pointer-events:none}
+</style></head><body><div class="wrap">
+<h1>像素工坊 · RPG 製作器</h1><div class="tabs" id="tabs"></div><p class="hint" id="warn" style="color:#c0392b"></p>
+
+<section id="vmap">
+<div class="box"><div class="row" style="margin:0"><select id="ms" style="flex:1" onchange="mi=+this.value;sel=null;mapUI();selUI()"></select>
+<button class="chip" onclick="g.maps.push(nm('新地圖'));mi=g.maps.length-1;sel=null;mapUI();selUI();sv()">＋地圖</button>
+<button class="chip" onclick="const n=prompt('地圖名稱',M().name);if(n){M().name=n;mapUI();sv()}">✎改名</button>
+<button class="chip" onclick="if(g.maps.length>1&&confirm('刪除這張地圖？')){g.maps.splice(mi,1);mi=0;sel=null;mapUI();selUI();sv()}">🗑</button></div>
+<div class="row"><div style="flex:1"><label style="margin:0">背景圖</label><select id="mbg" onchange="M().bg=this.value;sv()"></select></div>
+<div style="flex:1"><label style="margin:0">背景音樂</label><select id="mbgm" onchange="M().bgm=this.value;sv()"></select></div></div></div>
+<div class="box"><div class="row" style="margin:0 0 6px"><span>地圖大小</span><input id="mw" type="number" min="5" max="64" style="width:68px"> × <input id="mh" type="number" min="5" max="64" style="width:68px"><button class="chip" onclick="resize(+$('mw').value,+$('mh').value)">套用</button><button class="chip" onclick="zm*=1.25">🔍＋</button><button class="chip" onclick="zm/=1.25">🔍－</button><button class="chip" onclick="fit()">符合寬度</button></div>
+<div id="cvw" style="overflow:auto;max-height:68vh"><canvas id="cv" width="640" height="448"></canvas></div><p class="hint" id="tip"></p>
+<label><input type="checkbox" checked onchange="showCol=this.checked"> 顯示碰撞範圍（紅色＝走不過去）</label></div>
+<div class="box"><h2>① 地形（拖曳作畫）</h2><div class="chips" id="tl"></div>
+<h2>② 我上傳的素材（可旋轉）</h2><div class="chips" id="al"></div>
+<h2>③ 工具</h2><div class="chips" id="tt"></div><h2>④ 圖層（素材會放在選中的圖層）</h2><div class="chips" id="ly"></div></div>
+<div class="box" id="sel"></div>
+</section>
+
+<section id="vas" class="hide"><div class="box"><div class="row" style="margin:0"><button class="btn" onclick="upA('obj')">＋上傳素材</button><button class="btn alt" onclick="upA('bg')">＋上傳地圖背景</button></div>
+<p class="hint">素材可以是樹、桌子、房子、門等任何圖片，會自動縮成格子大小。</p><div class="chips" id="aList"></div><div id="aDet"></div></div></section>
+
+<section id="vch" class="hide"><div class="box"><button class="btn" onclick="upC()">＋上傳人物圖</button>
+<p class="hint">上傳一張行走圖或差分圖（多個畫格排成表格），設定幾欄幾列，再用點選的方式組出走路與其他動作。</p><div class="chips" id="cList"></div><div id="cDet"></div></div><div class="box"><button class="btn alt" onclick="upP()">＋上傳立繪／頭像</button><p class="hint">在「對話」指令中選用，會顯示在對話框上方。建議用透明背景的 PNG。</p><div id="pList"></div></div></section>
+
+<section id="vau" class="hide"><div class="box"><button class="btn" onclick="upU()">＋上傳音效／音樂</button><p class="hint">單檔上限 2MB。上傳後可在地圖設定背景音樂，或在事件指令中播放。</p><div id="uList"></div></div></section>
+
+<section id="vdb" class="hide"><div class="box" id="dbx"></div></section>
+
+<section id="vplay" class="hide"><div class="box"><div class="hud"><span id="hH"></span><button class="chip" onclick="menu()">☰ 選單</button><span id="hG"></span></div>
+<div class="stage"><canvas id="pcv" width="640" height="448"></canvas><div class="ovl" id="ovl"><img id="ovP"><div class="nm" id="ovN"></div><p id="ovT" onclick="pend&&pend()"></p><div class="row" id="ovB"></div></div></div>
+<div class="pad"><span></span><button data-d="3">▲</button><span></span><button data-d="1">◀</button><button data-d="0">▼</button><button data-d="2">▶</button></div>
+<p class="hint" style="text-align:center">電腦可用方向鍵／WASD，Enter 繼續對話。撞到角色會互動。</p></div></section>
+
+<section id="vhelp" class="hide"><div class="box" style="line-height:1.8"><h2>新手教學：做出你的第一個遊戲</h2>
+<details open><summary><b>① 五分鐘快速上手</b></summary><ol><li>到「🗺 地圖」，選地形後在地圖上拖曳畫。地圖不夠大，用「地圖大小」調整。</li><li>選「⭐ 新增事件」，點地圖放上一個 NPC，在下方「事件設定」加入「💬 對話」指令。</li><li>用「🧑 主角起點」決定出發位置，按「▶ 試玩」測試。</li><li>到「🚀 發布」產生遊戲代碼，備份或分享給朋友。</li></ol></details>
+<details><summary><b>② 上傳素材與圖層</b></summary><ol><li>到「🎨 素材」上傳圖片（建議 32×32 或 64×64 的正方形）。</li><li>回地圖，在「② 我上傳的素材」點選，再在地圖上點或拖曳擺放。</li><li><b>圖層</b>：素材會放在「④ 圖層」中亮起來的那一層。例如地板放下層、家具放中層。按「＋新增圖層」可以自己加，也能改名、調整上下順序、刪除。</li><li>勾「蓋住角色」的圖層會畫在主角上方（樹冠、屋簷）。「顯示」可暫時隱藏某層，方便編輯。</li><li>橡皮擦只擦目前選中的圖層。素材有透明處卻不想露出綠色，地形請選「無（透明）」。</li></ol></details>
+<details><summary><b>③ 碰撞（走得過、走不過）</b></summary><p>用「🧱 畫碰撞」在地圖上塗抹，紅色格子走不過去。素材也可以在「🎨 素材」勾選「有碰撞」。碰撞跟畫面顏色無關。</p></details>
+<details><summary><b>④ 人物與動作（差分圖）</b></summary><ol><li>到「🧍 人物」上傳人物圖，把「橫向幾格」「直向幾格」填成和你的圖一樣，圖上會出現格子與畫格編號。</li><li>按「＋新動作」，在「畫格選法」選：<br>　• 固定順序：點哪幾格就播哪幾格（例如眨眼點 4、9、14）。<br>　• 依方向：先選「下」「左」「右」「上」某一個方向，再點格子（例如往下走點 0、5、10）。</li><li>想讓它在行走時播放，就勾「移動時播放」；站著不動時的畫格可在「站立」欄填編號。點錯了可按「↶ 刪最後一格」。</li><li>按「設為主角」。劇情中用「🏃 主角動作」指令可以播放眨眼、驚訝等動作。</li></ol></details>
+<details><summary><b>⑤ 對話與劇情分支</b></summary><ol><li>「💬 對話」可填說話者、選立繪與位置。立繪在「🧍 人物」下方上傳。</li><li>「❓ 讓玩家選擇」的每個選項可以「跳到標籤」並「加減變數」。先用「🏷 標籤」標出劇情段落，選項再跳過去。</li><li>不知道怎麼開始時，在事件設定按「📋 套用「審問」範例」，照著改最快。</li></ol></details>
+<details><summary><b>⑥ 解謎推理怎麼做</b></summary><ol><li>在「📦 資料庫」新增線索。</li><li>調查物件的事件用「🔎 獲得線索」，玩家可在「☰ 選單」的筆記本查看。</li><li>審問 NPC 時用「📜 讓玩家出示證物」，對的跳一條路、錯的跳另一條。</li><li>用變數記錄信任度、真相，再用「若變數符合條件就跳到標籤」決定結局。</li></ol></details></div></section>
+<section id="vpub" class="hide"><div class="box"><h2>☁ 雲端專案</h2><p class="hint">登入後可儲存草稿與素材。草稿只供你的帳號編輯；發布會建立供任何人遊玩的公開版本。</p>
+<div class="cloud-grid"><div><label>電子郵件</label><input id="cloud-email" type="email" autocomplete="email"></div><div><label>密碼</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="6"></div></div>
+<div class="row"><button class="btn" onclick="cloudAuth('login')">登入</button><button class="chip" onclick="cloudAuth('signup')">註冊</button><button class="chip" onclick="cloudLogout()">登出</button></div>
+<p class="status" id="cloud-status">尚未登入</p><div class="row"><button class="btn" onclick="saveCloud()">儲存雲端草稿</button><button class="chip" onclick="listCloud()">我的專案</button><select id="cloud-projects" style="flex:1;min-width:180px" onchange="loadCloud(this.value)"><option value="">選擇專案…</option></select></div>
+<div class="row"><button class="chip" onclick="cloudProjectId='';$('cloud-projects').value='';cloudMessage('下次儲存時建立新專案。')">另存為新專案</button></div>
+<p class="hint">第一次儲存會建立新專案；載入其他專案前請先儲存目前修改。素材會獨立上傳至 Supabase Storage。</p></div>
+<div class="box"><h2>🚀 發布遊戲</h2><label style="margin-top:0">遊戲名稱</label><input id="title" oninput="g.title=this.value;sv()"><div class="row"><button class="btn alt" onclick="publishCloud()">發布目前版本</button><button class="chip" onclick="unpublishCloud()">下架</button></div><p class="status" id="publish-status">尚未發布</p><input id="public-url" readonly placeholder="發布後顯示遊玩連結"><div class="row"><button class="chip" onclick="copyPublicUrl()">複製遊玩連結</button><button class="chip" onclick="openPublicUrl()">開啟遊戲</button></div></div>
+<div class="box"><h2>📦 離線備份</h2>
+<p class="hint">把代碼傳給朋友，對方貼到這裡按「載入遊戲」就能試玩或修改。素材越多代碼越長。</p>
+<div class="row"><button class="btn" onclick="gen()">產生遊戲代碼</button><button class="btn alt" onclick="cp()">複製代碼</button><button class="btn" onclick="ld()">載入遊戲</button></div>
+<textarea id="code" style="margin-top:8px;min-height:120px" placeholder="代碼會顯示在這裡，也可貼上朋友的代碼"></textarea><p class="hint" id="pm"></p></div>
+<div class="box"><h2>🗒 與 RPG Maker MZ 的差距</h2><div class="hint" style="line-height:1.8"><b>已可用</b>：地圖繪製與自訂圖層、碰撞、事件指令與劇情分支、人物與音訊上傳、試玩、撤銷／重做、雲端草稿及公開遊戲版本。<br><b>下一階段優先</b>：事件頁與自我開關、事件複製／貼上及共用事件、地圖區塊框選／複製、矩形筆刷、自動拼接地形。<br><b>更完整的 RPG 系統</b>：隊伍與職業、裝備／技能／狀態、完整回合制戰鬥、動畫與特效、任務和存檔欄位。<br><b>仍需改善</b>：大型專案素材管理、離線容量、版本歷史、協作編輯與多平台輸出。雲端素材網址可供玩家讀取，請勿上傳私密圖片。</div></div></section>
+</div>
+<script>
+let W=20,H=14;const T=32,$=i=>document.getElementById(i);
+const TL=[{n:'草地',c:'#6bbf59',e:'',w:1},{n:'水',c:'#4a90d9',e:'🌊',w:0},{n:'樹',c:'#3f8f46',e:'🌲',w:0},{n:'石牆',c:'#8d8d93',e:'🧱',w:0},{n:'地板',c:'#d8c4a0',e:'',w:1},{n:'道路',c:'#c9a86a',e:'',w:1},{n:'沙地',c:'#f0e0a0',e:'',w:1},{n:'無（透明）',c:'',e:'',w:1}];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const O=(a,s)=>a.map(([v,l])=>`<option value="${esc(v)}" ${v==s?'selected':''}>${esc(l)}</option>`).join('');
+let n0=Date.now();const uid=()=>'a'+(n0++).toString(36);
+const AS=k=>Object.entries(g.assets).filter(([,a])=>a.k==k).map(([i,a])=>[i,a.n]);
+const IM={};function img(s){if(!s)return;let i=IM[s];if(!i){i=IM[s]=new Image();i.src=s}return i.complete&&i.naturalWidth?i:null}
+const nm=n=>({name:n,w:20,h:14,gr:Array.from({length:14},()=>Array(20).fill(0)),ob:[],col:[],bg:'',bgm:'',ev:[]});
+const mkEv=(x,y,emo,name,cmds)=>({x,y,emo,name,ch:'',trig:'ok',need:'',pass:0,cmds});
+function fresh(){const m=nm('村莊');for(let x=0;x<W;x++)m.gr[0][x]=m.gr[H-1][x]=2;for(let y=0;y<H;y++)m.gr[y][0]=m.gr[y][W-1]=2;for(let x=1;x<W-1;x++)m.gr[7][x]=5;
+ m.ev=[mkEv(5,5,'🧙','村長',[{t:'say',v:'勇者啊，往東走，打倒怪物，找到終點旗幟！'}]),mkEv(8,9,'🎁','寶箱',[{t:'gold',v:15},{t:'say',v:'獲得 15 金幣！'},{t:'del'}]),mkEv(12,7,'👹','史萊姆',[{t:'bat',e:'e1',win:'打倒了史萊姆！'},{t:'del'}]),mkEv(17,7,'🏁','終點',[{t:'end',v:'恭喜通關！'}])];
+ return{title:'我的冒險',maps:[m],assets:{},start:{m:0,x:2,y:7,ch:''}}}
+let g;try{g=JSON.parse(localStorage.getItem('rpgmk2'))||fresh()}catch(e){g=fresh()}
+const ini=()=>{g.layers=g.layers||[{id:0,n:'下層（地板、地毯）',t:0},{id:1,n:'中層（家具、物件）',t:0},{id:2,n:'上層',t:1}];g.clues=g.clues||[{id:'c1',n:'染血的手帕',d:'在花園角落找到，上面有深色污漬。'}];g.items=g.items||[{id:'i1',n:'藥水',heal:10,price:5}];g.enemies=g.enemies||[{id:'e1',n:'史萊姆',hp:10,atk:2,gold:5,emo:'👹'}]};ini();let ver=0;const LC=new WeakMap(),show=[1,1,1];const sv=()=>{ver++;try{localStorage.setItem('rpgmk2',JSON.stringify(g));$('warn').textContent=''}catch(e){$('warn').textContent='⚠ 瀏覽器儲存空間不足，素材無法自動儲存；請到「發布」複製遊戲代碼備份。'}};
+let mi=0,tool={k:'tile',id:0},sel=null,rot=0,showCol=true,aSel='',cSel='',aiSel=0,mode='map',ft=0,hist=[],redoHist=[],zm=1,curL=1;
+const M=()=>{const m=g.maps[mi];W=m.w||20;H=m.h||14;return m},C=()=>g.assets[cSel],cur=()=>C().acts[aiSel]||C().acts[0];
+// ---------- upload ----------
+function pick(acc,cb){const i=document.createElement('input');i.type='file';i.accept=acc;i.multiple=true;i.onchange=()=>[...i.files].forEach(cb);i.click()}
+function rd(f,max,cb){if(f.size>(f.type.startsWith('audio')?2e6:2e7)){$('warn').textContent='檔案太大：'+f.name;return}const r=new FileReader();r.onload=()=>{if(!f.type.startsWith('image/'))return cb(r.result);const im=new Image();im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s|0||1;c.height=im.height*s|0||1;c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL(f.type=='image/jpeg'?'image/jpeg':'image/png',.85))};im.src=r.result};r.readAsDataURL(f)}
+const nmOf=f=>f.name.replace(/\.\w+$/,'');
+function upA(k){pick('image/*',f=>rd(f,k=='bg'?2048:128,s=>{const i=uid();g.assets[i]={k,n:nmOf(f),src:s,col:0,vars:{}};aSel=i;sv();assetUI()}))}
+function upVar(r){rd0('image/*',128,s=>{g.assets[aSel].vars[r]=s;sv();assetUI()})}
+function rd0(acc,max,cb){pick(acc,f=>rd(f,max,cb))}
+function upC(){pick('image/*',f=>rd(f,768,s=>{const i=uid();g.assets[i]={k:'ch',n:nmOf(f),src:s,cols:3,rows:4,dr:[0,1,2,3],acts:[{n:'走路',walk:1,f:[0,1,2,1],fps:8}]};cSel=i;aiSel=0;sv();chUI()}))}
+function upU(){pick('audio/*',f=>rd(f,0,s=>{g.assets[uid()]={k:'au',n:nmOf(f),src:s};sv();auUI()}))}
+// ---------- drawing ----------
+function blocked(m,x,y){return x<0||y<0||x>=W||y>=H||!TL[m.gr[y][x]].w||m.col[y*W+x]||m.ob.some(o=>o.x==x&&o.y==y&&(o.c??(g.assets[o.a]||{}).col))}
+function dMap(x,m){const bg=img(m.bg&&(g.assets[m.bg]||{}).src);x.fillStyle='#222';x.fillRect(0,0,W*T,H*T);if(bg)x.drawImage(bg,0,0,W*T,H*T);
+ x.textAlign='center';x.textBaseline='middle';x.font='24px sans-serif';
+ for(let j=0;j<H;j++)for(let i=0;i<W;i++){const t=TL[m.gr[j][i]];if(t.c&&!(bg&&!m.gr[j][i])){x.fillStyle=t.c;x.fillRect(i*T,j*T,T,T)}if(t.e){x.fillStyle='#000';x.fillText(t.e,i*T+16,j*T+18)}}
+ dObs(x,m,0)}
+function dObsOld(x,m,top){m.ob.forEach(o=>{const a=g.assets[o.a];if(!a||!a.top!=!top)return;const v=a.vars[o.r],im=img(v||a.src);if(!im)return;x.save();x.translate(o.x*T+16,o.y*T+16);if(!v)x.rotate(o.r*Math.PI/180);x.drawImage(im,-16,-16,T,T);x.restore()})}
+function dCh(x,id,dir,mv,px,py,ov){const c=g.assets[id],im=c&&img(c.src);if(!im)return 0;const sw=im.width/c.cols,sh=im.height/c.rows,now=performance.now(),a=ov?ov.a:(c.acts.find(a=>a.walk)||c.acts[0]);let col=c.cols>>1,row=c.dr[dir]||0;
+ if(a){const mo=a.m||(a.walk?'l':'f'),fl=mo=='d'?(a.fd&&a.fd[dir])||[]:a.f,at=k=>{col=k%c.cols;row=Math.floor(k/c.cols)};if(fl.length){if(a.walk&&!mv){if(mo=='d')at(a.idle!=null&&a.idle!==''?+a.idle:fl[fl.length>>1])}else{const k=fl[Math.floor((a.walk?now:now-((ov&&ov.t0)||0))*a.fps/1000)%fl.length];if(mo=='l')col=k;else at(k)}}}
+ const dh=sh*T/sw;x.drawImage(im,col*sw,row*sh,sw,sh,px,py+T-dh,T,dh);return 1}
+function dEv(x,e){if(!e.ch||!dCh(x,e.ch,0,0,e.x*T,e.y*T)){x.textAlign='center';x.font='24px sans-serif';x.fillStyle='#000';x.fillText(e.emo||'⭐',e.x*T+16,e.y*T+18)}}
+function edDraw(){const m=M(),c=$('cv');if(c.width!=W*T||c.height!=H*T){c.width=W*T;c.height=H*T}c.style.width=W*T*zm+'px';const x=c.getContext('2d');dMap(x,m);x.strokeStyle='rgba(0,0,0,.12)';for(let i=0;i<=W;i++){x.beginPath();x.moveTo(i*T,0);x.lineTo(i*T,H*T);x.stroke()}for(let j=0;j<=H;j++){x.beginPath();x.moveTo(0,j*T);x.lineTo(W*T,j*T);x.stroke()}
+ m.ev.forEach(e=>{dEv(x,e);x.strokeStyle='#e8a317';x.lineWidth=2;x.strokeRect(e.x*T+2,e.y*T+2,T-4,T-4);x.lineWidth=1});
+ if(g.start.m==mi&&!dCh(x,g.start.ch,0,0,g.start.x*T,g.start.y*T)){x.font='24px sans-serif';x.fillStyle='#000';x.fillText('🧑',g.start.x*T+16,g.start.y*T+18)}
+ if(g.start.m==mi){x.strokeStyle='#5b3fd1';x.lineWidth=3;x.strokeRect(g.start.x*T+1,g.start.y*T+1,T-2,T-2);x.lineWidth=1}
+ dObs(x,m,1);if(showCol)for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(blocked(m,i,j)){x.fillStyle='rgba(230,40,40,.35)';x.fillRect(i*T,j*T,T,T)}
+ const s=sel&&(sel.e||sel.o);if(s){x.strokeStyle='#fff';x.lineWidth=3;x.strokeRect(s.x*T+1,s.y*T+1,T-2,T-2);x.lineWidth=1}}
+// ---------- map editor ----------
+const TIPS={tile:'拖曳畫出地形。',asset:'點地圖放上素材；放之前可按「旋轉」換角度。',col:'點或拖曳：標記／取消碰撞格（紅色）。',sel:'點地圖上的素材或事件來編輯。',ev:'點地圖新增事件，再到下方設定內容。',start:'點地圖設定主角出發位置。',erase:'拖曳擦掉素材、事件與碰撞標記。',fill:'先選一個地形，再點地圖，會把相連的同種地形全部換掉。',pan:'按住拖曳來移動畫面（大地圖用）。'};
+const key=()=>tool.k=='tile'?'t'+tool.id:tool.k=='asset'?'a'+tool.id:tool.k;
+function hl(){document.querySelectorAll('[data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==key()));$('tip').textContent=TIPS[tool.k]}
+function mapUI(){$('ms').innerHTML=O(g.maps.map((m,i)=>[i,m.name]),mi);$('mw').value=M().w||20;$('mh').value=M().h||14;fit();$('ly').innerHTML=[['🟫 下層：地板、地毯'],['🪑 中層：家具、物件'],['🌳 上層：蓋住角色']].map(([n],i)=>`<button class="chip ${curL==i?'on':''}" onclick="curL=${i};mapUI()">${n}</button><label style="display:inline-flex;align-items:center;gap:4px;margin:0"><input type="checkbox" ${show[i]?'checked':''} onchange="show[${i}]=this.checked?1:0"> 顯示</label>`).join('');
+ $('mbg').innerHTML=O([['','（無）'],...AS('bg')],M().bg);$('mbgm').innerHTML=O([['','（無）'],...AS('au')],M().bgm);
+ $('tl').innerHTML=TL.map((t,i)=>`<button class="chip" data-k="t${i}" onclick="tool={k:'tile',id:${i}};ft=${i};hl()"><i style="background:${t.c}"></i>${t.n}</button>`).join('');
+ $('al').innerHTML=AS('obj').map(([i,n])=>`<button class="chip" data-k="a${i}" onclick="tool={k:'asset',id:'${i}'};hl()"><img src="${g.assets[i].src}" width=24 height=24> ${esc(n)}</button>`).join('')+`<button class="chip" id="rb" onclick="rot=(rot+90)%360;this.textContent='⟳ 旋轉 '+rot+'°'">⟳ 旋轉 ${rot}°</button>`||'';
+ if(!AS('obj').length)$('al').innerHTML='<span class="hint">到「🎨 素材」分頁上傳後會出現在這裡。</span>'+$('al').innerHTML;
+ $('tt').innerHTML=[['sel','👆 選取'],['ev','⭐ 新增事件'],['col','🧱 畫碰撞'],['start','🧑 主角起點'],['pan','✋ 移動畫面'],['fill','🪣 填滿'],['erase','🧽 橡皮擦']].map(([k,n])=>`<button class="chip" data-k="${k}" onclick="tool={k:'${k}'};hl()">${n}</button>`).join('')+'<button class="chip" onclick="undo()">↩ 復原</button><button class="chip" onclick="redo()">↪ 重做</button><button class="chip" onclick="if(confirm(\'清空這張地圖的地形？\')){hist.push([mi,JSON.stringify(M())]);redoHist=[];M().gr.forEach(r=>r.fill(0));sv()}">🧹 清除地形</button>';hl();layUI()}
+const cv=$('cv');let down=false;
+function cellOf(e){const r=cv.getBoundingClientRect();return[Math.min(W-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*W))),Math.min(H-1,Math.max(0,Math.floor((e.clientY-r.top)/r.height*H)))]}
+function act(ev,drag){const m=M(),[x,y]=cellOf(ev),k=tool.k;
+ if(k=='tile')m.gr[y][x]=tool.id;
+ else if(k=='asset'){const o=m.ob.find(o=>o.x==x&&o.y==y&&lay(o)==curL);if(o){o.a=tool.id;o.r=rot}else m.ob.push({x,y,a:tool.id,r:rot,L:curL})}
+ else if(k=='col'){if(!drag)cv.v=m.col[y*W+x]?0:1;m.col[y*W+x]=cv.v}
+ else if(k=='erase'){const n=m.ob.length;m.ob=m.ob.filter(o=>!(o.x==x&&o.y==y&&lay(o)==curL));if(m.ob.length==n){m.ev=m.ev.filter(q=>!(q.x==x&&q.y==y));m.col[y*W+x]=0}sel=null;selUI()}
+ else if(k=='fill'){if(drag)return;const o=m.gr[y][x];if(o!=ft){const q=[[x,y]];while(q.length){const[a,b]=q.pop();if(a<0||b<0||a>=W||b>=H||m.gr[b][a]!=o)continue;m.gr[b][a]=ft;q.push([a+1,b],[a-1,b],[a,b+1],[a,b-1])}}}
+ else if(drag)return;
+ else if(k=='start')g.start={...g.start,m:mi,x,y};
+ else if(k=='sel'){const e=m.ev.find(q=>q.x==x&&q.y==y),o=m.ob.find(q=>q.x==x&&q.y==y&&lay(q)==curL)||m.ob.find(q=>q.x==x&&q.y==y);sel=e?{e}:o?{o}:null;selUI()}
+ else if(k=='ev'){let e=m.ev.find(q=>q.x==x&&q.y==y);if(!e){e=mkEv(x,y,'🧙','事件',[{t:'say',v:'你好！'}]);m.ev.push(e)}sel={e};selUI()}
+ sv()}
+function undo(){const h=hist.pop();if(!h)return;redoHist.push([mi,JSON.stringify(g.maps[mi])]);mi=h[0];g.maps[mi]=JSON.parse(h[1]);sel=null;mapUI();selUI();sv()}
+function redo(){const h=redoHist.pop();if(!h)return;hist.push([mi,JSON.stringify(g.maps[mi])]);mi=h[0];g.maps[mi]=JSON.parse(h[1]);sel=null;mapUI();selUI();sv()}
+addEventListener('keydown',e=>{if(mode!='map'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='z'){e.preventDefault();e.shiftKey?redo():undo()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='y'){e.preventDefault();redo()}});
+cv.addEventListener('pointerdown',e=>{down=true;cv.px=e.clientX;cv.py=e.clientY;if(!['pan','sel'].includes(tool.k)){hist.push([mi,JSON.stringify(M())]);redoHist=[];if(hist.length>40)hist.shift()}cv.setPointerCapture(e.pointerId);act(e,false)});
+cv.addEventListener('pointermove',e=>{if(down){if(tool.k=='pan'){$('cvw').scrollLeft-=e.clientX-cv.px;$('cvw').scrollTop-=e.clientY-cv.py;cv.px=e.clientX;cv.py=e.clientY}else act(e,true)}});['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,()=>down=false));
+// ---------- events ----------
+const CS={say:['💬 對話',[['s','t','說話者（顯示在名牌，可留空）'],['p','u','立繪／頭像'],['sd','w','立繪位置'],['v','x','對話內容']]],sw:['🔘 設定開關',[['n','t','開關名稱'],['v','s','']]],gold:['🪙 增減金幣',[['v','n','金額（負數＝扣除）']]],if:['❓ 開關沒開就跳過後面幾條',[['n','t','開關名稱'],['k','n','跳過幾條']]],tp:['🌀 傳送',[['m','m','地圖'],['x','n','X 格'],['y','n','Y 格']]],se:['🔊 播放音效',[['a','a','音效']]],bgm:['🎵 切換音樂',[['a','a','音樂']]],bat:['⚔ 戰鬥',[['e','e','敵人（到資料庫新增）'],['win','t','勝利訊息']]],act:['🏃 主角動作',[['a','c','動作']]],wait:['⏳ 等待（秒）',[['v','n','秒']]],del:['🗑 移除此事件',[]],end:['🏁 通關',[['v','t','通關訊息']]],item:['🎒 獲得／扣除道具',[['i','i','道具'],['n','n','數量（負數＝扣除）']]],ifi:['❓ 沒有該道具就跳過後面幾條',[['i','i','道具'],['k','n','跳過幾條']]],yn:['🔀 詢問：選「否」就跳過後面幾條',[['q','t','問題'],['k','n','跳過幾條']]],shop:['🛒 開啟商店（販售資料庫中有售價的道具）',[]],hp:['❤ 回復 HP（99＝全滿）',[['v','n','回復量']]],ch:['❓ 讓玩家選擇（可分支、可加分）',[['q','t','提問'],['o','o','']]],lb:['🏷 標籤（跳轉目的地）',[['n','t','標籤名稱']]],jp:['↪ 跳到標籤',[['l','t','標籤名稱']]],var:['🔢 變數（信任度、真相…）',[['n','t','變數名稱'],['o','p',''],['v','n','數值']]],ifv:['🔀 若變數符合條件就跳到標籤',[['n','t','變數名稱'],['o','q',''],['v','n','比較值'],['l','t','跳到標籤']]],cl:['🔎 獲得線索',[['i','k','線索']]],ifc:['🔀 若已有線索就跳到標籤',[['i','k','線索'],['l','t','跳到標籤']]],pr:['📜 讓玩家出示證物',[['q','t','提問'],['i','k','正確證物'],['l','t','出示正確→標籤'],['l2','t','出示錯誤→標籤']]]};
+const DF={say:{v:'你好！'},sw:{n:'開關1',v:1},gold:{v:10},if:{n:'開關1',k:1},tp:{m:0,x:2,y:2},bat:{e:'e1',win:'勝利！'},item:{i:'i1',n:1},ifi:{i:'i1',k:1},yn:{q:'要繼續嗎？',k:1},hp:{v:10},ch:{q:'你怎麼回答？',o:[{t:'選項A',l:'',v:'',d:0},{t:'選項B',l:'',v:'',d:0}]},var:{n:'信任度',o:'+',v:1},ifv:{n:'信任度',o:'>=',v:3,l:''},cl:{i:'c1'},ifc:{i:'c1',l:''},pr:{q:'要出示什麼證物？',i:'c1',l:'',l2:''},wait:{v:1},end:{v:'恭喜通關！'}};
+function selUI(){const s=$('sel');if(!sel){s.innerHTML='<h2>編輯區</h2><p class="hint">用「👆 選取」點地圖上的素材或事件，這裡就會出現設定。</p>';return}
+ if(sel.o){const o=sel.o;s.innerHTML=`<h2>素材設定</h2><div class="row"><button class="btn" onclick="sel.o.r=(sel.o.r+90)%360;sv()">⟳ 旋轉 90°</button><select style="width:auto" onchange="sel.o.c=this.value==''?undefined:+this.value;sv()">${O([['','碰撞：依素材設定'],['1','有碰撞'],['0','可穿越']],o.c==null?'':o.c)}</select><button class="btn gr" onclick="M().ob=M().ob.filter(q=>q!=sel.o);sel=null;selUI();sv()">🗑 刪除</button></div>`;return}
+ const e=sel.e;s.innerHTML=`<h2>事件設定</h2><label>名字</label><input value="${esc(e.name)}" oninput="sel.e.name=this.value;sv()">
+ <div class="row"><div style="flex:1"><label>外觀符號</label><input value="${esc(e.emo)}" maxlength=2 oninput="sel.e.emo=this.value;sv()"></div><div style="flex:2"><label>或使用人物圖</label><select onchange="sel.e.ch=this.value;sv()">${O([['','（不用）'],...AS('ch')],e.ch)}</select></div></div>
+ <label>觸發方式</label><select onchange="sel.e.trig=this.value;sv()">${O([['ok','碰到時（對話、開箱、戰鬥）'],['touch','踩上去時'],['auto','進入地圖自動執行']],e.trig)}</select>
+ <label>出現條件：開關名稱（留空＝一直存在）</label><input value="${esc(e.need)}" oninput="sel.e.need=this.value;sv()">
+ <label><input type="checkbox" ${e.pass?'checked':''} onchange="sel.e.pass=this.checked?1:0;sv()"> 可穿越（不擋路）</label>
+ <h2>事件指令（由上往下依序執行）</h2><div id="cmds"></div>
+ <select onchange="addCmd(this.value);this.value=''"><option value="">＋新增指令…</option>${Object.entries(CS).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}</select>
+ <div class="row"><button class="chip" onclick="tpl()">📋 套用「審問」範例</button><button class="btn gr" onclick="M().ev=M().ev.filter(q=>q!=sel.e);sel=null;selUI();sv()">🗑 刪除事件</button></div>`;cmdUI()}
+function fld(c,i,k,ty,l){const v=c[k]??'',h=`oninput="cs(${i},'${k}',this.value)"`,hc=`onchange="cs(${i},'${k}',this.value)"`,L=l?`<label>${l}</label>`:'';
+ if(ty=='o')return (c.o||[]).map((q,j)=>`<div class="cmd"><input placeholder="選項文字" value="${esc(q.t)}" oninput="sel.e.cmds[${i}].o[${j}].t=this.value;sv()"><div class="row"><input placeholder="跳到標籤" style="flex:2" value="${esc(q.l)}" oninput="sel.e.cmds[${i}].o[${j}].l=this.value;sv()"><input placeholder="加分變數" style="flex:2" value="${esc(q.v)}" oninput="sel.e.cmds[${i}].o[${j}].v=this.value;sv()"><input type="number" placeholder="±" style="flex:1;min-width:60px" value="${esc(q.d)}" oninput="sel.e.cmds[${i}].o[${j}].d=+this.value||0;sv()"><button class="chip" onclick="sel.e.cmds[${i}].o.splice(${j},1);cmdUI();sv()">✕</button></div></div>`).join('')+`<button class="chip" onclick="sel.e.cmds[${i}].o.push({t:'',l:'',v:'',d:0});cmdUI();sv()">＋選項</button><p class="hint">每個選項可：跳到某個標籤，並讓某個變數加減分。</p>`;if(ty=='x')return L+`<textarea ${h}>${esc(v)}</textarea>`;if(ty=='u')return L+`<select ${hc}>${O([['','（無）'],...AS('pt')],v)}</select>`;if(ty=='w')return L+`<select ${hc}>${O([['l','左側'],['r','右側']],v||'l')}</select>`;if(ty=='p')return `<select ${hc}>${O([['=','設為'],['+','增加'],['-','減少']],v)}</select>`;if(ty=='q')return `<select ${hc}>${O([['>=','大於等於'],['<=','小於等於'],['=','等於'],['>','大於'],['<','小於']],v||'>=')}</select>`;if(ty=='k')return L+`<select ${hc}>${O(g.clues.map(t=>[t.id,t.n]),v)}</select>`;if(ty=='i')return L+`<select ${hc}>${O(g.items.map(t=>[t.id,t.n]),v)}</select>`;if(ty=='e')return L+`<select ${hc}>${O(g.enemies.map(t=>[t.id,t.n]),v)}</select>`;if(ty=='s')return`<select ${hc}>${O([[1,'開'],[0,'關']],v)}</select>`;
+ if(ty=='m')return L+`<select ${hc}>${O(g.maps.map((m,j)=>[j,m.name]),v)}</select>`;
+ if(ty=='a')return L+`<select ${hc}>${O([['','（無）'],...AS('au')],v)}</select>`;
+ if(ty=='c'){const ch=g.assets[g.start.ch];return L+`<select ${hc}>${O((ch?ch.acts:[]).map(a=>[a.n,a.n]),v)}</select>`}
+ return L+`<input ${ty=='n'?'type=number':''} value="${esc(v)}" ${h}>`}
+function cmdUI(){$('cmds').innerHTML=sel.e.cmds.map((c,i)=>{const s=CS[c.t];return`<div class="cmd"><div class="row" style="margin:0"><b style="flex:1">${s[0]}</b><button class="chip" onclick="mvC(${i},-1)">▲</button><button class="chip" onclick="mvC(${i},1)">▼</button><button class="chip" onclick="sel.e.cmds.splice(${i},1);cmdUI();sv()">✕</button></div>${s[1].map(([k,ty,l])=>fld(c,i,k,ty,l)).join('')}</div>`}).join('')||'<p class="hint">還沒有指令，從下方新增。</p>'}
+const cs=(i,k,v)=>{sel.e.cmds[i][k]=v;sv()};
+function addCmd(t){if(t){sel.e.cmds.push({t,...JSON.parse(JSON.stringify(DF[t]||{}))});cmdUI();sv()}}
+function mvC(i,d){const a=sel.e.cmds,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];cmdUI();sv()}
+// ---------- assets / characters / audio ----------
+function assetUI(){const L=[...AS('obj'),...AS('bg')];$('aList').innerHTML=L.map(([i,n])=>`<button class="chip ${i==aSel?'on':''}" onclick="aSel='${i}';assetUI()"><img src="${g.assets[i].src}" width=28 height=28> ${g.assets[i].k=='bg'?'🖼 ':''}${esc(n)}</button>`).join('')||'<span class="hint">還沒有素材。</span>';
+ const a=g.assets[aSel];if(!a||!['obj','bg'].includes(a.k)){$('aDet').innerHTML='';return}
+ $('aDet').innerHTML=`<label>名稱</label><input value="${esc(a.n)}" oninput="g.assets[aSel].n=this.value;sv()">`+(a.k=='obj'?`<label><input type="checkbox" ${a.col?'checked':''} onchange="g.assets[aSel].col=this.checked?1:0;sv()"> 有碰撞（角色走不過去）</label><label><input type="checkbox" ${a.top?'checked':''} onchange="g.assets[aSel].top=this.checked?1:0;sv()"> 顯示在角色上方（如樹冠、屋簷）</label><h2>不同角度的圖（可選）</h2><p class="hint">地圖上旋轉時，有上傳該角度的圖就用它，沒有就自動旋轉原圖。</p><div class="row">${[90,180,270].map(r=>`<div>${a.vars[r]?`<img src="${a.vars[r]}" width=40 height=40 style="display:block">`:''}<button class="chip" onclick="upVar(${r})">上傳 ${r}°</button>${a.vars[r]?`<button class="chip" onclick="delete g.assets[aSel].vars[${r}];assetUI();sv()">✕</button>`:''}</div>`).join('')}</div>`:'')+`<div class="row"><button class="btn gr" onclick="delAs(aSel)">🗑 刪除</button></div>`}
+function delAs(i){delete g.assets[i];g.maps.forEach(m=>{m.ob=m.ob.filter(o=>o.a!=i);if(m.bg==i)m.bg='';if(m.bgm==i)m.bgm=''});aSel=cSel='';sv();assetUI();chUI();pUI();auUI()}
+function chUI(){$('cList').innerHTML=AS('ch').map(([i,n])=>`<button class="chip ${i==cSel?'on':''}" onclick="cSel='${i}';aiSel=0;chUI()">${esc(n)}</button>`).join('');
+ const c=C();if(!c||c.k!='ch'){$('cDet').innerHTML='';return}const a=cur();
+ $('cDet').innerHTML=`<label>名稱</label><input value="${esc(c.n)}" oninput="C().n=this.value;sv()">
+ <div class="row"><div style="flex:1"><label>橫向幾格</label><input type="number" min=1 max=12 value="${c.cols}" oninput="C().cols=Math.max(1,+this.value||1);sv()"></div><div style="flex:1"><label>直向幾格</label><input type="number" min=1 max=12 value="${c.rows}" oninput="C().rows=Math.max(1,+this.value||1);sv()"></div></div>
+ <label>四個方向對應第幾列（0 起算）：下／左／右／上</label><div class="row">${[0,1,2,3].map(d=>`<input type="number" style="width:64px" value="${c.dr[d]}" oninput="C().dr[${d}]=+this.value;sv()">`).join('')}</div>
+ <div class="row"><button class="btn alt" onclick="g.start.ch=cSel;sv();chUI()">${g.start.ch==cSel?'✔ 目前是主角':'設為主角'}</button><button class="btn gr" onclick="delAs(cSel)">🗑 刪除</button></div>
+ <h2>動作</h2><div class="chips">${c.acts.map((x,j)=>`<button class="chip ${x==a?'on':''}" onclick="aiSel=${j};chUI()">${esc(x.n)}</button>`).join('')}<button class="chip" onclick="C().acts.push({n:'動作'+C().acts.length,walk:0,f:[],fps:6});aiSel=C().acts.length-1;chUI();sv()">＋新動作</button></div>
+ <label>動作名稱</label><input value="${esc(a.n)}" oninput="cur().n=this.value;sv()">
+ <label><input type="checkbox" ${a.walk?'checked':''} onchange="cur().walk=this.checked?1:0;sv();chUI()"> 移動時播放（這是走路動作）</label>
+ <label>畫格選法</label><select onchange="setMode(this.value)">${O([['f','固定順序：點哪幾格就播哪幾格'],['d','依方向：上下左右各自選畫格（推薦）'],['l','自動換列：只選欄（RPG Maker 行走圖）']],MO(a))}</select>
+ ${MO(a)=='d'?`<div class="row">${['下','左','右','上'].map((n,d)=>`<button class="chip ${dsel==d?'on':''}" onclick="dsel=${d};chUI()">${n}：${((a.fd||[])[d]||[]).join(',')||'空'}</button>`).join('')}</div>`:''}
+ ${a.walk&&MO(a)=='d'?`<label>站立時顯示的畫格編號（留空＝取中間格）</label><input type="number" value="${a.idle??''}" oninput="cur().idle=this.value===''?null:+this.value;sv()">`:''}
+ <label>速度（每秒幾格）</label><input type="number" min=1 max=30 value="${a.fps}" oninput="cur().fps=Math.max(1,+this.value||1);sv()">
+ <p class="hint">點下方圖片依序加入畫格。${MO(a)=='d'?'（正在編輯「'+'下左右上'[dsel]+'」方向）':''}目前順序：${(MO(a)=='d'?(a.fd||[])[dsel]||[]:a.f).join(' → ')||'（空）'}　<button class="chip" onclick="undoF()">↶ 刪最後一格</button><button class="chip" onclick="clrF()">清除</button> ${c.acts.length>1?'<button class="chip" onclick="C().acts.splice(aiSel,1);aiSel=0;chUI();sv()">刪除此動作</button>':''}</p>
+ <div class="row"><canvas id="sh" width="320" height="240" style="width:320px;max-width:70%"></canvas><canvas id="pv" width="96" height="96" style="width:96px"></canvas></div>`;
+ $('sh').onpointerdown=e=>{const r=e.target.getBoundingClientRect(),i=Math.floor((e.clientX-r.left)/r.width*c.cols),j=Math.floor((e.clientY-r.top)/r.height*c.rows);const k=MO(cur())=='l'?i:j*c.cols+i;if(MO(cur())=='d'){const q=cur();(q.fd=q.fd||[[],[],[],[]])[dsel].push(k)}else cur().f.push(k);chUI();sv()}}
+function chDraw(){const c=C(),s=$('sh');if(!c||!s)return;const im=img(c.src);if(!im)return;const h=Math.round(320*im.height/im.width);if(s.height!=h)s.height=h;
+ const x=s.getContext('2d');x.clearRect(0,0,320,h);x.drawImage(im,0,0,320,h);x.strokeStyle='#e8a317';x.fillStyle='#e8a317';x.font='11px sans-serif';
+ for(let j=0;j<c.rows;j++)for(let i=0;i<c.cols;i++){x.strokeRect(i*320/c.cols,j*h/c.rows,320/c.cols,h/c.rows);x.fillText(j*c.cols+i,i*320/c.cols+3,j*h/c.rows+11)}
+ const a=cur(),fl=MO(a)=='d'?((a.fd||[])[dsel]||[]):a.f;fl.forEach((k,n)=>{const i=MO(a)=='l'?k:k%c.cols,j=MO(a)=='l'?0:Math.floor(k/c.cols);x.fillStyle='rgba(91,63,209,.4)';x.fillRect(i*320/c.cols,j*h/c.rows,320/c.cols,h/c.rows);x.fillStyle='#fff';x.fillText('#'+(n+1),i*320/c.cols+3,(j+1)*h/c.rows-4)});const p=$('pv').getContext('2d');p.setTransform(1,0,0,1,0,0);p.clearRect(0,0,96,96);p.setTransform(3,0,0,3,0,0);dCh(p,cSel,Math.floor(performance.now()/1200)%4,1,0,0,{a,t0:0})}
+function auUI(){$('uList').innerHTML=AS('au').map(([i,n])=>`<div class="cmd"><input value="${esc(n)}" oninput="g.assets['${i}'].n=this.value;sv()"><audio controls src="${g.assets[i].src}" style="width:100%;margin-top:6px"></audio><button class="btn gr" style="margin-top:6px" onclick="delAs('${i}')">🗑 刪除</button></div>`).join('')||'<span class="hint">還沒有音訊。</span>'}
+// ---------- play ----------
+let R,P,busy=0,held=null,pend=null,last=0;const bgmEl=new Audio();bgmEl.loop=true;const DV=[[0,1],[-1,0],[1,0],[0,-1]],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const ask0=(t,b)=>new Promise(r=>{$('ovT').textContent=t;$('ovB').innerHTML='';b.forEach((n,i)=>{const k=document.createElement('button');k.className='btn';k.textContent=n;k.onclick=()=>{pend=null;$('ovl').style.display='none';r(i)};$('ovB').appendChild(k)});pend=b.length==1?()=>$('ovB').firstChild.click():null;$('ovl').style.display='block'});
+const say=t=>ask(t,['▶ 繼續']);
+function snd(id,loop){const a=g.assets[id];if(loop){bgmEl.pause();if(a){bgmEl.src=a.src;bgmEl.play().catch(()=>{})}}else if(a)new Audio(a.src).play().catch(()=>{})}
+const vis=(e,i)=>!R.rem[R.m+':'+i]&&(!e.need||R.sw[e.need]);
+async function startPlay(){R={sw:{},gold:0,hp:30,rem:{},m:0,inv:{},vr:{},cl:{},log:[]};const s=g.start;let o=null;try{o=JSON.parse(localStorage.getItem('rpgsave'))}catch(e){}
+ busy=0;P={x:s.x,y:s.y,sx:s.x,sy:s.y,fx:s.x,fy:s.y,dir:0,mv:0,t:0,ov:null};R.m=g.maps[s.m]?s.m:0;let x=s.x,y=s.y;
+ if(o&&o.t==g.title){busy=1;const a=await ask('找到存檔，要繼續嗎？',['📂 繼續存檔','🆕 新遊戲']);busy=0;if(a==0){R=o.R;R.vr=R.vr||{};R.cl=R.cl||{};x=o.x;y=o.y}}
+ enter(R.m,x,y)}
+function enter(m,x,y){R.m=m;W=g.maps[m].w||20;H=g.maps[m].h||14;P={x,y,sx:x,sy:y,fx:x,fy:y,dir:P?P.dir:0,mv:0,t:0,ov:null};snd(g.maps[m].bgm,1);setTimeout(async()=>{const mm=g.maps[R.m];for(let i=0;i<mm.ev.length;i++)if(mm.ev[i].trig=='auto'&&vis(mm.ev[i],i))await run(mm.ev[i],i)},60)}
+async function battle(c){const en=g.enemies.find(t=>t.id==c.e)||{n:c.name||'怪物',hp:+c.hp||10,atk:Math.ceil((+c.hp||10)/5)+1,gold:0};c={...c,name:en.n,hp:en.hp};let hp=en.hp,mx=hp,msg='遭遇 '+en.n+'！';for(;;){const a=await ask(msg+'\n'+c.name+' ❤'+hp+'　你 ❤'+R.hp,['⚔ 攻擊','🧪 藥水(5金)','🏃 逃跑']);if(a==2)return 0;msg='';
+ if(a==0){const d=2+Math.random()*5|0;hp-=d;msg='造成 '+d+' 點傷害。';if(hp<=0){R.gold+=en.gold||0;await say((c.win||'勝利！')+(en.gold?'（+'+en.gold+' 金幣）':''));return 1}}
+ else if(R.gold<5)msg='金幣不夠！';else{R.gold-=5;R.hp=Math.min(30,R.hp+10);msg='恢復了體力。'}
+ const d=1+Math.random()*en.atk|0;R.hp-=d;msg+=' 受到 '+d+' 點傷害。';if(R.hp<=0)return -1}}
+async function run(e,i){if(busy)return;busy=1;const key=R.m+':'+i,J=(l,k)=>{const j=e.cmds.findIndex(x=>x.t=='lb'&&x.n==l);return j<0?k:j};try{for(let k=0;k<e.cmds.length;k++){const c=e.cmds[k];
+ if(c.t=='say'){(R.log=R.log||[]).push((c.s?c.s+'：':'')+c.v);if(R.log.length>100)R.log.shift();await ask(c.v||'',['▼'],{n:c.s,p:c.p,s:c.sd,ty:1})}else if(c.t=='sw')R.sw[c.n]=+c.v;else if(c.t=='gold')R.gold=Math.max(0,R.gold+(+c.v||0));
+ else if(c.t=='if'){if(!R.sw[c.n])k+=+c.k||0}
+ else if(c.t=='tp'){if(g.maps[+c.m])enter(+c.m,+c.x,+c.y)}else if(c.t=='se')snd(c.a);else if(c.t=='bgm')snd(c.a,1);
+ else if(c.t=='bat'){const r=await battle(c);if(!r)return;if(r<0){await say('你倒下了⋯⋯');return startPlay()}}
+ else if(c.t=='act'){const ch=g.assets[g.start.ch],a=ch&&(ch.acts.find(a=>a.n==c.a)||ch.acts[1]||ch.acts[0]);const n=a?(a.m=='d'?(a.fd&&a.fd[P.dir]||[]):a.f).length:0;if(n){P.ov={a,t0:performance.now()};await sleep(n/a.fps*1000);P.ov=null}}
+ else if(c.t=='jp')k=J(c.l,k);else if(c.t=='var'){const v=+c.v||0,o=R.vr[c.n]||0;R.vr[c.n]=c.o=='+'?o+v:c.o=='-'?o-v:v}else if(c.t=='ifv'){const a=R.vr[c.n]||0,b=+c.v||0;if({'>=':a>=b,'<=':a<=b,'=':a==b,'>':a>b,'<':a<b}[c.o||'>='])k=J(c.l,k)}else if(c.t=='ch'){const o=c.o||[];if(o.length){const a=await ask(c.q||'',o.map(q=>q.t||'…')),q=o[a];if(q.v)R.vr[q.v]=(R.vr[q.v]||0)+(+q.d||0);if(q.l)k=J(q.l,k)}}else if(c.t=='cl'){R.cl[c.i]=1;await say('📝 獲得線索：'+cl(c.i).n)}else if(c.t=='ifc'){if(R.cl[c.i])k=J(c.l,k)}else if(c.t=='pr'){const L=Object.keys(R.cl).filter(i=>R.cl[i]),a=await ask(c.q||'要出示什麼證物？',[...L.map(i=>cl(i).n),'算了']);if(a<L.length)k=J(L[a]==c.i?c.l:c.l2,k)}else if(c.t=='item')R.inv[c.i]=Math.max(0,(R.inv[c.i]||0)+(+c.n||0));else if(c.t=='ifi'){if(!R.inv[c.i])k+=+c.k||0}else if(c.t=='yn'){if(await ask(c.q,['是','否']))k+=+c.k||0}else if(c.t=='hp')R.hp=Math.min(30,R.hp+(+c.v||0));else if(c.t=='shop')await shop();else if(c.t=='wait')await sleep((+c.v||0)*1000);else if(c.t=='del')R.rem[key]=1;
+ else if(c.t=='end'){await say(c.v);return startPlay()}}}finally{busy=0}}
+function step(d){if(busy||P.mv)return;P.dir=d;const m=g.maps[R.m],nx=P.x+DV[d][0],ny=P.y+DV[d][1];if(nx<0||ny<0||nx>=W||ny>=H)return;
+ const i=m.ev.findIndex((e,i)=>e.x==nx&&e.y==ny&&vis(e,i));if(i>=0&&!m.ev[i].pass){if(m.ev[i].trig!='auto')run(m.ev[i],i);return}
+ if(blocked(m,nx,ny))return;P.sx=P.x;P.sy=P.y;P.x=nx;P.y=ny;P.mv=1;P.t=0}
+function pDraw(ts){const dt=Math.min(50,ts-last);last=ts;if(!R||!P)return;const x=$('pcv').getContext('2d'),m=g.maps[R.m];
+ if(P.mv){P.t+=dt/170;if(P.t>=1){P.mv=0;P.fx=P.x;P.fy=P.y;const i=m.ev.findIndex((e,i)=>e.x==P.x&&e.y==P.y&&e.pass&&e.trig=='touch'&&vis(e,i));if(i>=0)run(m.ev[i],i)}else{P.fx=P.sx+(P.x-P.sx)*P.t;P.fy=P.sy+(P.y-P.sy)*P.t}}
+ if(held!=null)step(held);
+ W=m.w||20;H=m.h||14;x.setTransform(1,0,0,1,0,0);x.fillStyle='#000';x.fillRect(0,0,640,448);const cx=W*T<=640?(W*T-640)/2:Math.max(0,Math.min(W*T-640,P.fx*T+16-320)),cy=H*T<=448?(H*T-448)/2:Math.max(0,Math.min(H*T-448,P.fy*T+16-224));x.translate(-cx,-cy);dMap(x,m);m.ev.forEach((e,i)=>vis(e,i)&&dEv(x,e));
+ if(!dCh(x,g.start.ch,P.dir,P.mv,P.fx*T,P.fy*T,P.ov)){x.font='24px sans-serif';x.fillStyle='#000';x.fillText('🧑',P.fx*T+16,P.fy*T+18)}
+ dObs(x,m,1);x.setTransform(1,0,0,1,0,0);$('hH').textContent='❤ '+R.hp+'/30　📍'+m.name;$('hG').textContent='🪙 '+R.gold}
+document.querySelectorAll('.pad button').forEach(b=>{b.onpointerdown=()=>held=+b.dataset.d;['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,()=>held=null))});
+const KM={ArrowDown:0,s:0,ArrowLeft:1,a:1,ArrowRight:2,d:2,ArrowUp:3,w:3};
+addEventListener('keydown',e=>{if(mode!='play')return;if(e.key=='Escape'){menu();return}if(e.key=='Enter'||e.key==' '){if(pend){e.preventDefault();pend()}return}if(e.key in KM){e.preventDefault();held=KM[e.key]}});
+addEventListener('keyup',e=>{if(KM[e.key]===held)held=null});
+// ---------- items / menu / database ----------
+const it=i=>g.items.find(t=>t.id==i)||{n:'?',heal:0};
+async function shop(){for(;;){const L=g.items.filter(t=>t.price>0),a=await ask('歡迎光臨！ 🪙'+R.gold,[...L.map(t=>t.n+' '+t.price+'金'),'離開']);if(a>=L.length)return;const t=L[a];if(R.gold<t.price)await say('金幣不夠！');else{R.gold-=t.price;R.inv[t.id]=(R.inv[t.id]||0)+1}}}
+async function menu(){if(busy||!R||!P)return;busy=1;try{for(;;){const inv=Object.entries(R.inv).filter(([,n])=>n>0),L=inv.filter(([i])=>it(i).heal),a=await ask('❤ '+R.hp+'/30　🪙 '+R.gold+'\n道具：'+(inv.map(([i,n])=>it(i).n+'×'+n).join('、')||'無'),[...L.map(([i])=>'使用'+it(i).n),'📓 筆記本','📜 對話紀錄','💾 存檔','關閉']);
+ if(a==L.length+3)return;if(a==L.length){await note();continue}if(a==L.length+1){await logv();continue}if(a==L.length+2){try{localStorage.setItem('rpgsave',JSON.stringify({t:g.title,R,x:P.x,y:P.y}));await say('已存檔！')}catch(e){await say('存檔失敗：儲存空間不足')}continue}
+ R.inv[L[a][0]]--;R.hp=Math.min(30,R.hp+it(L[a][0]).heal)}}finally{busy=0}}
+const addDb=k=>{g[k].push(k=='items'?{id:uid(),n:'新道具',heal:0,price:0}:k=='clues'?{id:uid(),n:'新線索',d:''}:{id:uid(),n:'新敵人',hp:10,atk:2,gold:3,emo:'👹'});dbUI();sv()};
+function dbUI(){const f=(k,i,p,l,t)=>`<div style="flex:1;min-width:68px"><label>${l}</label><input ${t?'':'type=number'} value="${esc(g[k][i][p])}" oninput="g.${k}[${i}].${p}=${t?'this.value':'+this.value||0'};sv()"></div>`,d=(k,i)=>`<button class="chip" onclick="g.${k}.splice(${i},1);dbUI();sv()">✕</button>`;
+ $('dbx').innerHTML='<h2>🔎 線索／證物（調查後放進筆記本，可用來推理）</h2>'+g.clues.map((t,i)=>`<div class="cmd"><div class="row" style="margin:0">${f('clues',i,'n','名稱',1)}${f('clues',i,'d','說明',1)}${d('clues',i)}</div></div>`).join('')+`<button class="btn" onclick="addDb('clues')">＋線索</button>`+'<h2>🧪 道具（商店販售、遊戲選單可使用）</h2>'+g.items.map((t,i)=>`<div class="cmd"><div class="row" style="margin:0">${f('items',i,'n','名稱',1)}${f('items',i,'heal','回復 HP')}${f('items',i,'price','售價（0＝不賣）')}${d('items',i)}</div></div>`).join('')+`<button class="btn" onclick="addDb('items')">＋道具</button><h2>👹 敵人（在事件的「戰鬥」指令選用）</h2>`+g.enemies.map((t,i)=>`<div class="cmd"><div class="row" style="margin:0">${f('enemies',i,'emo','符號',1)}${f('enemies',i,'n','名稱',1)}${f('enemies',i,'hp','血量')}${f('enemies',i,'atk','攻擊力')}${f('enemies',i,'gold','掉落金幣')}${d('enemies',i)}</div></div>`).join('')+`<button class="btn" onclick="addDb('enemies')">＋敵人</button>`}
+// ---------- layers / dialogue ----------
+const MO=a=>a.m||(a.walk?'l':'f');let dsel=0;
+function setMode(m){const a=cur();a.m=m;if(m=='d')a.fd=a.fd||[[],[],[],[]];chUI();sv()}
+function undoF(){const a=cur();(MO(a)=='d'?a.fd[dsel]:a.f).pop();chUI();sv()}
+function clrF(){const a=cur();if(MO(a)=='d')a.fd[dsel]=[];else a.f=[];chUI();sv()}
+function layUI(){$('ly').innerHTML=g.layers.map((l,i)=>`<div class="row" style="margin:3px 0"><button class="chip ${curL==l.id?'on':''}" onclick="curL=g.layers[${i}].id;layUI()">${esc(l.n)}</button><label style="display:inline-flex;gap:3px;align-items:center;margin:0"><input type="checkbox" ${show[l.id]===0?'':'checked'} onchange="show[g.layers[${i}].id]=this.checked?1:0"> 顯示</label><label style="display:inline-flex;gap:3px;align-items:center;margin:0"><input type="checkbox" ${l.t?'checked':''} onchange="g.layers[${i}].t=this.checked?1:0;sv()"> 蓋住角色</label><button class="chip" onclick="lmv(${i},-1)">▲</button><button class="chip" onclick="lmv(${i},1)">▼</button><button class="chip" onclick="lren(${i})">✎</button><button class="chip" onclick="ldel(${i})">🗑</button></div>`).join('')+'<button class="chip" onclick="ladd()">＋新增圖層</button>'}
+function ladd(){const id=uid();g.layers.push({id,n:'圖層'+(g.layers.length+1),t:0});curL=id;sv();layUI()}
+function lren(i){const n=prompt('圖層名稱',g.layers[i].n);if(n){g.layers[i].n=n;sv();layUI()}}
+function lmv(i,d){const a=g.layers,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];sv();layUI()}
+function ldel(i){if(g.layers.length<2||!confirm('刪除這個圖層，上面的素材也會一起刪掉，確定嗎？'))return;const id=g.layers[i].id;g.maps.forEach(m=>m.ob=m.ob.filter(o=>lay(o)!=id));g.layers.splice(i,1);curL=g.layers[0].id;sv();layUI()}
+const lay=o=>o.L??((g.assets[o.a]||{}).top?2:1);
+function dLay(x,m,L){if(show[L]===0)return;let e=LC.get(m);if(!e||e.v!=ver){e={v:ver};LC.set(m,e)}let c=e[L];if(!c){c=document.createElement('canvas');c.width=W*T;c.height=H*T;const k=c.getContext('2d');let ok=1;m.ob.forEach(o=>{if(lay(o)!=L)return;const a=g.assets[o.a];if(!a)return;const v=a.vars[o.r],im=img(v||a.src);if(!im){ok=0;return}k.save();k.translate(o.x*T+16,o.y*T+16);if(!v)k.rotate(o.r*Math.PI/180);k.drawImage(im,-16,-16,T,T);k.restore()});if(ok)e[L]=c}x.drawImage(c,0,0)}
+function dObs(x,m,top){g.layers.forEach(l=>{if(!l.t==!top)dLay(x,m,l.id)})}
+const ask=(t,b,o)=>new Promise(r=>{o=o||{};const Tx=$('ovT'),B=$('ovB'),N=$('ovN'),P_=$('ovP'),pa=o.p&&g.assets[o.p];N.style.display=o.n?'block':'none';N.textContent=o.n||'';P_.style.display=pa?'block':'none';if(pa){P_.src=pa.src;P_.style.left=o.s=='r'?'auto':'0';P_.style.right=o.s=='r'?'0':'auto'}
+ B.innerHTML='';let i=0,tm;const fin=()=>{clearInterval(tm);Tx.textContent=t;B.innerHTML='';b.forEach((n,j)=>{const k=document.createElement('button');k.className='btn';k.textContent=n;k.onclick=()=>{pend=null;$('ovl').style.display='none';r(j)};B.appendChild(k)});pend=b.length==1?()=>B.firstChild.click():null};
+ Tx.textContent='';$('ovl').style.display='block';if(!o.ty){fin();return}pend=fin;tm=setInterval(()=>{Tx.textContent=t.slice(0,++i);if(i>=t.length)fin()},28)});
+async function logv(){const L=R.log||[];if(!L.length)return say('還沒有對話紀錄。');let p=Math.max(0,L.length-5);for(;;){const a=await ask('📜 對話紀錄\n'+L.slice(p,p+5).join('\n'),['▲ 更早','▼ 更新','返回']);if(a==2)return;p=Math.max(0,Math.min(Math.max(0,L.length-5),p+(a?5:-5)))}}
+function upP(){pick('image/*',f=>rd(f,600,s=>{g.assets[uid()]={k:'pt',n:nmOf(f),src:s};sv();pUI()}))}
+function pUI(){$('pList').innerHTML=AS('pt').map(([i,n])=>`<div class="row"><img src="${g.assets[i].src}" height="48"><input style="flex:1" value="${esc(n)}" oninput="g.assets['${i}'].n=this.value;sv()"><button class="chip" onclick="delAs('${i}')">✕</button></div>`).join('')||'<p class="hint">還沒有立繪。</p>'}
+// ---------- map size ----------
+function fit(){zm=Math.min(1.5,Math.max(.25,($('cvw').clientWidth-6)/(W*T)))}
+function resize(w,h){w=Math.max(5,Math.min(64,w|0||20));h=Math.max(5,Math.min(64,h|0||14));const m=M(),ow=m.w||20,oh=m.h||14;hist.push([mi,JSON.stringify(m)]);
+ m.gr=Array.from({length:h},(_,y)=>Array.from({length:w},(_,x)=>y<oh&&x<ow?m.gr[y][x]:0));
+ const c=[];for(let y=0;y<Math.min(h,oh);y++)for(let x=0;x<Math.min(w,ow);x++)if(m.col[y*ow+x])c[y*w+x]=1;m.col=c;
+ m.ob=m.ob.filter(o=>o.x<w&&o.y<h);m.ev=m.ev.filter(e=>e.x<w&&e.y<h);if(g.start.m==mi&&(g.start.x>=w||g.start.y>=h))g.start={...g.start,x:0,y:0};m.w=w;m.h=h;sel=null;mapUI();selUI();sv()}
+// ---------- mystery ----------
+const cl=i=>g.clues.find(t=>t.id==i)||{n:'?',d:''};
+async function note(){for(;;){const L=Object.keys(R.cl).filter(i=>R.cl[i]);if(!L.length)return say('📓 筆記本還是空的，去調查看看吧！');const a=await ask('📓 線索筆記（點選查看）',[...L.map(i=>cl(i).n),'返回']);if(a>=L.length)return;await say('🔎 '+cl(L[a]).n+'\n'+cl(L[a]).d)}}
+const TPL=[{t:'say',s:'管家',v:'昨晚我一直在廚房，什麼都沒看見。'},{t:'ch',q:'你要怎麼問？',o:[{t:'溫和地詢問',l:'a',v:'信任度',d:1},{t:'直接質問',l:'b',v:'信任度',d:-1},{t:'出示證物',l:'c',v:'',d:0}]},{t:'lb',n:'a'},{t:'say',s:'管家',v:'……好吧，我其實有聽到玻璃破碎的聲音。'},{t:'jp',l:'end'},{t:'lb',n:'b'},{t:'say',s:'管家',v:'你在懷疑我？我無可奉告！'},{t:'jp',l:'end'},{t:'lb',n:'c'},{t:'pr',q:'要出示什麼證物？',i:'c1',l:'ok',l2:'no'},{t:'jp',l:'end'},{t:'lb',n:'ok'},{t:'say',s:'管家',v:'那條手帕……是我的。我全說了。'},{t:'var',n:'真相',o:'=',v:1},{t:'jp',l:'end'},{t:'lb',n:'no'},{t:'say',s:'管家',v:'這跟我無關。'},{t:'lb',n:'end'}];
+function tpl(){if(sel.e.cmds.length&&!confirm('會取代目前的指令，確定嗎？'))return;sel.e.cmds=JSON.parse(JSON.stringify(TPL));selUI();sv()}
+// ---------- tabs / publish ----------
+const TB=[['map','🗺 地圖'],['as','🎨 素材'],['ch','🧍 人物'],['au','🎵 音效'],['db','📦 資料庫'],['play','▶ 試玩'],['pub','🚀 發布'],['help','❓ 教學']];
+$('tabs').innerHTML=TB.map(([k,n])=>`<button id="t${k}" onclick="go('${k}')">${n}</button>`).join('');
+function go(k){mode=k;TB.forEach(([q])=>{$('v'+q).classList.toggle('hide',q!=k);$('t'+q).classList.toggle('on',q==k)});bgmEl.pause();held=null;$('ovl').style.display='none';pend=null;
+ if(k=='map'){mapUI();selUI()}if(k=='as')assetUI();if(k=='ch'){chUI();pUI()}if(k=='au')auUI();if(k=='db')dbUI();if(k=='play')startPlay();if(k=='pub'){$('title').value=g.title;gen()}}
+function gen(){const s=btoa(unescape(encodeURIComponent(JSON.stringify(g))));$('code').value=s;$('pm').textContent='代碼已產生（約 '+Math.round(s.length/1024)+' KB），按「複製代碼」即可分享。'}
+async function cp(){$('code').select();try{await navigator.clipboard.writeText($('code').value);$('pm').textContent='已複製！'}catch(e){$('pm').textContent='請長按文字框，手動全選複製。'}}
+function ld(){try{const o=JSON.parse(decodeURIComponent(escape(atob($('code').value.trim()))));if(!o.maps||!o.assets)throw 0;g=o;ini();mi=0;sel=null;aSel=cSel='';sv();$('pm').textContent='載入成功！到「▶ 試玩」開始。'}catch(e){$('pm').textContent='代碼無法讀取，請確認完整貼上。'}}
+// Cloud drafts and immutable published snapshots use separate RLS-protected tables.
+const SB_URL='https://bwgifvzudghajbtknasu.supabase.co';
+const SB_KEY='sb_publishable_xRACXZEUwnyz9yrpo0Y1Ow_y3cePCGI';
+let cloudSession=null,cloudProjectId='',cloudBusy=false;
+try{cloudSession=JSON.parse(sessionStorage.getItem('rpg-cloud-session')||'null')}catch(e){}
+const cloudMessage=(s,id='cloud-status')=>{$(id).textContent=s};
+async function sbFetch(path,options={}){
+ const headers={apikey:SB_KEY,...options.headers};
+ if(cloudSession?.access_token)headers.Authorization='Bearer '+cloudSession.access_token;
+ const res=await fetch(SB_URL+path,{...options,headers});
+ const raw=await res.text();let data;try{data=raw?JSON.parse(raw):null}catch(e){data=raw}
+ if(!res.ok)throw new Error(data?.msg||data?.message||data?.error_description||data?.error||'HTTP '+res.status);
+ return data;
+}
+async function validSession(){
+ if(!cloudSession?.access_token)throw new Error('請先登入。');
+ if(Date.now()<(cloudSession.expires_at||0)-60000)return;
+ if(!cloudSession.refresh_token)throw new Error('登入已過期，請重新登入。');
+ const s=await sbFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:cloudSession.refresh_token})});
+ setSession(s);
+}
+function setSession(s){cloudSession={...s,expires_at:Date.now()+(s.expires_in||3600)*1000};sessionStorage.setItem('rpg-cloud-session',JSON.stringify(cloudSession));cloudMessage('已登入：'+(s.user?.email||cloudSession.user?.email||'使用者'));$('cloud-password').value=''}
+async function cloudAuth(kind){
+ const email=$('cloud-email').value.trim(),password=$('cloud-password').value;
+ if(!email||password.length<6){cloudMessage('請輸入電子郵件與至少 6 字元的密碼。');return}
+ try{cloudMessage('連線中…');const path=kind=='signup'?'/auth/v1/signup':'/auth/v1/token?grant_type=password';
+ const s=await sbFetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+ if(!s.access_token){cloudMessage('註冊成功。請先到信箱完成驗證，再按「登入」。');return}
+ setSession(s);await listCloud();}catch(e){cloudMessage('登入失敗：'+e.message)}
+}
+function cloudLogout(){cloudSession=null;cloudProjectId='';sessionStorage.removeItem('rpg-cloud-session');cloudMessage('已登出');$('cloud-projects').innerHTML='<option value="">選擇專案…</option>'}
+async function listCloud(){try{await validSession();const rows=await sbFetch('/rest/v1/rpg_projects?select=id,title,updated_at&order=updated_at.desc');
+ $('cloud-projects').innerHTML='<option value="">選擇專案…</option>'+rows.map(p=>`<option value="${esc(p.id)}" ${p.id==cloudProjectId?'selected':''}>${esc(p.title)} · ${new Date(p.updated_at).toLocaleString('zh-TW')}</option>`).join('');
+ cloudMessage('找到 '+rows.length+' 個專案。')}catch(e){cloudMessage('無法列出專案：'+e.message)}}
+async function loadCloud(id){if(!id)return;if(!confirm('載入雲端專案會取代目前畫面中的內容。尚未儲存的修改會遺失，確定嗎？')){$('cloud-projects').value=cloudProjectId;return}
+ try{await validSession();const rows=await sbFetch('/rest/v1/rpg_projects?id=eq.'+encodeURIComponent(id)+'&select=id,data');if(!rows.length)throw new Error('找不到專案');
+ const data=rows[0].data;if(!data?.maps?.length||!data.assets)throw new Error('專案資料不完整');g=data;ini();cloudProjectId=id;mi=0;sel=null;aSel=cSel='';hist=[];redoHist=[];sv();$('title').value=g.title;cloudMessage('已載入：'+g.title);await publicationStatus();}
+ catch(e){cloudMessage('載入失敗：'+e.message)}}
+async function uploadDataUrl(src,path){const blob=await (await fetch(src)).blob();const mime=blob.type||'application/octet-stream';
+ await sbFetch('/storage/v1/object/rpg-assets/'+path,{method:'POST',headers:{'Content-Type':mime,'Cache-Control':'3600'},body:blob});
+ return SB_URL+'/storage/v1/object/public/rpg-assets/'+path;
+}
+async function saveCloud(){if(cloudBusy)return null;cloudBusy=true;
+ try{await validSession();const userId=cloudSession.user?.id;if(!userId)throw new Error('請重新登入以確認身分');
+ const id=cloudProjectId||crypto.randomUUID(),data=JSON.parse(JSON.stringify(g));let uploaded=0;
+ for(const [aid,a] of Object.entries(data.assets)){
+  for(const field of ['src',...Object.keys(a.vars||{}).map(k=>'vars:'+k)]){
+   const value=field=='src'?a.src:a.vars[field.slice(5)];if(typeof value!='string'||!value.startsWith('data:'))continue;
+   const ext=value.startsWith('data:image/jpeg')?'jpg':value.startsWith('data:image/webp')?'webp':value.startsWith('data:audio/mpeg')?'mp3':value.startsWith('data:audio/wav')?'wav':value.startsWith('data:audio/ogg')?'ogg':'png';
+   const path=[userId,id,aid+'-'+crypto.randomUUID()+'.'+ext].map(encodeURIComponent).join('/');
+   const url=await uploadDataUrl(value,path);if(field=='src')a.src=url;else a.vars[field.slice(5)]=url;uploaded++;cloudMessage('素材上傳中：'+uploaded+' 個');
+  }
+ }
+ const rows=await sbFetch('/rest/v1/rpg_projects?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({id,owner_id:userId,title:data.title||'未命名遊戲',data,updated_at:new Date().toISOString()})});
+ if(!rows?.length)throw new Error('資料庫未確認儲存');cloudProjectId=id;g=data;ini();sv();cloudMessage('草稿已儲存到雲端，素材 '+uploaded+' 個。');await listCloud();return id;
+ }catch(e){cloudMessage('儲存失敗：'+e.message);return null}finally{cloudBusy=false}}
+const gameUrl=id=>location.protocol=='file:'?'':new URL('?game='+encodeURIComponent(id),location.href).href;
+async function publicationStatus(){if(!cloudProjectId){$('public-url').value='';cloudMessage('尚未發布','publish-status');return}
+ const rows=await sbFetch('/rest/v1/rpg_publications?id=eq.'+encodeURIComponent(cloudProjectId)+'&select=id,published_at');
+ $('public-url').value=rows.length?gameUrl(cloudProjectId):'';cloudMessage(rows.length?'已發布：'+new Date(rows[0].published_at).toLocaleString('zh-TW'):'尚未發布','publish-status')}
+async function publishCloud(){const id=await saveCloud();if(!id)return;
+ try{await validSession();const row={id,owner_id:cloudSession.user.id,title:g.title||'未命名遊戲',data:g,published_at:new Date().toISOString()};
+ const rows=await sbFetch('/rest/v1/rpg_publications?on_conflict=id',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify(row)});
+ if(!rows?.length)throw new Error('發布未確認');$('public-url').value=gameUrl(id);cloudMessage(gameUrl(id)?'已發布。可複製連結供玩家遊玩。':'已發布；請使用託管網址開啟本編輯器以取得分享連結。','publish-status');
+ }catch(e){cloudMessage('發布失敗：'+e.message,'publish-status')}}
+async function unpublishCloud(){if(!cloudProjectId)return;if(!confirm('要下架這個遊戲嗎？玩家的連結將無法再開啟。'))return;
+ try{await validSession();await sbFetch('/rest/v1/rpg_publications?id=eq.'+encodeURIComponent(cloudProjectId),{method:'DELETE'});$('public-url').value='';cloudMessage('已下架','publish-status')}catch(e){cloudMessage('下架失敗：'+e.message,'publish-status')}}
+async function copyPublicUrl(){const url=$('public-url').value;if(!url)return;try{await navigator.clipboard.writeText(url);cloudMessage('遊玩連結已複製','publish-status')}catch(e){$('public-url').select();cloudMessage('請手動複製選取的連結','publish-status')}}
+function openPublicUrl(){if($('public-url').value)window.open($('public-url').value,'_blank','noopener')}
+async function loadPublicGame(){const id=new URLSearchParams(location.search).get('game');if(!id)return false;
+ try{if(!/^[0-9a-f-]{36}$/i.test(id))throw new Error('連結格式不正確');const rows=await sbFetch('/rest/v1/rpg_publications?id=eq.'+encodeURIComponent(id)+'&select=title,data');
+ if(!rows.length)throw new Error('遊戲尚未發布或已下架');if(!rows[0].data?.maps?.length)throw new Error('遊戲資料不完整');
+ g=rows[0].data;ini();document.body.classList.add('public-game');document.querySelector('h1').textContent=g.title||'遊戲';document.title=g.title||document.title;go('play');return true;
+ }catch(e){$('warn').textContent='無法開啟遊戲：'+e.message;return false}}
+function loop(ts){if(mode=='map')edDraw();else if(mode=='play')pDraw(ts);else if(mode=='ch')chDraw();requestAnimationFrame(loop)}
+go('map');if(cloudSession)cloudMessage('已登入：'+(cloudSession.user?.email||'使用者'));loadPublicGame();requestAnimationFrame(loop);
+</script></body></html>
+
