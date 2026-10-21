@@ -375,7 +375,7 @@ async function loadPublicGame(){const id=new URLSearchParams(location.search).ge
  try{if(!/^[0-9a-f-]{36}$/i.test(id))throw new Error('連結格式不正確');const rows=await sbFetch('/rest/v1/rpg_publications?id=eq.'+encodeURIComponent(id)+'&select=title,data');
  if(!rows.length)throw new Error('遊戲尚未發布或已下架');if(!rows[0].data?.maps?.length)throw new Error('遊戲資料不完整');
  g=rows[0].data;ini();document.body.classList.add('public-game');document.querySelector('h1').textContent=g.title||'遊戲';document.title=g.title||document.title;go('play');return true;
- }catch(e){$('warn').textContent='無法開啟遊戲：'+e.message;return false}}
+ }catch(e){document.body.classList.add('public-game');$('vplay').innerHTML='<div class="box"><h2>無法開啟遊戲</h2><p>'+esc(e.message)+'</p></div>';return false}}
 function loop(ts){if(mode=='map')edDraw();else if(mode=='play')pDraw(ts);else if(mode=='ch')chDraw();requestAnimationFrame(loop)}
 go('map');if(cloudSession)cloudMessage('已登入：'+(cloudSession.user?.email||'使用者'));loadPublicGame();requestAnimationFrame(loop);
 </script></body></html>
