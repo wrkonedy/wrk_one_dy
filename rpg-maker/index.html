@@ -88,7 +88,7 @@ body.public-game #vplay{display:block!important}
 <div class="cloud-grid"><div><label>電子郵件</label><input id="cloud-email" type="email" autocomplete="email"></div><div><label>密碼</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="6"></div></div>
 <div class="row"><button class="btn" onclick="cloudAuth('login')">登入</button><button class="chip" onclick="cloudAuth('signup')">註冊</button><button class="chip" onclick="cloudLogout()">登出</button></div>
 <p class="status" id="cloud-status">尚未登入</p><div class="row"><button class="btn" onclick="saveCloud()">儲存雲端草稿</button><button class="chip" onclick="listCloud()">我的專案</button><select id="cloud-projects" style="flex:1;min-width:180px" onchange="loadCloud(this.value)"><option value="">選擇專案…</option></select></div>
-<div class="row"><button class="chip" onclick="cloudProjectId='';sessionStorage.removeItem('rpg-cloud-project');$('cloud-projects').value='';cloudMessage('下次儲存時建立新專案。')">另存為新專案</button></div>
+<div class="row"><button class="chip" onclick="cloudProjectId='';sessionStorage.removeItem('rpg-cloud-project');$('cloud-projects').value='';$('public-url').value='';cloudMessage('尚未發布','publish-status');cloudMessage('下次儲存時建立新專案。')">另存為新專案</button></div>
 <p class="hint">第一次儲存會建立新專案；載入其他專案前請先儲存目前修改。素材會獨立上傳至 Supabase Storage。</p></div>
 <div class="box"><h2>🚀 發布遊戲</h2><label style="margin-top:0">遊戲名稱</label><input id="title" oninput="g.title=this.value;sv()"><div class="row"><button class="btn alt" onclick="publishCloud()">發布目前版本</button><button class="chip" onclick="unpublishCloud()">下架</button></div><p class="status" id="publish-status">尚未發布</p><input id="public-url" readonly placeholder="發布後顯示遊玩連結"><div class="row"><button class="chip" onclick="copyPublicUrl()">複製遊玩連結</button><button class="chip" onclick="openPublicUrl()">開啟遊戲</button></div></div>
 <div class="box"><h2>📦 離線備份</h2>
@@ -225,7 +225,8 @@ const ask0=(t,b)=>new Promise(r=>{$('ovT').textContent=t;$('ovB').innerHTML='';b
 const say=t=>ask(t,['▶ 繼續']);
 function snd(id,loop){const a=g.assets[id];if(loop){bgmEl.pause();if(a){bgmEl.src=a.src;bgmEl.play().catch(()=>{})}}else if(a)new Audio(a.src).play().catch(()=>{})}
 const vis=(e,i)=>!R.rem[R.m+':'+i]&&(!e.need||R.sw[e.need])&&(!e.needVar||(R.vr[e.needVar]||0)>=+(e.needVal??1))&&(!e.needClue||R.cl[e.needClue]);
-async function startPlay(){R={sw:{},gold:0,hp:30,rem:{},m:0,inv:{},vr:{},cl:{},log:[]};const s=g.start;let o=null;try{o=JSON.parse(localStorage.getItem('rpgsave'))}catch(e){}
+const gameSaveKey=()=>{const id=new URLSearchParams(location.search).get('game')||sessionStorage.getItem('rpg-cloud-project');return id?'rpgsave:'+id:'rpgsave'};
+async function startPlay(){R={sw:{},gold:0,hp:30,rem:{},m:0,inv:{},vr:{},cl:{},log:[]};const s=g.start;let o=null;try{o=JSON.parse(localStorage.getItem(gameSaveKey()))}catch(e){}
  busy=0;P={x:s.x,y:s.y,sx:s.x,sy:s.y,fx:s.x,fy:s.y,dir:0,mv:0,t:0,ov:null};R.m=g.maps[s.m]?s.m:0;let x=s.x,y=s.y;
  if(o&&o.t==g.title){busy=1;const a=await ask('找到存檔，要繼續嗎？',['📂 繼續存檔','🆕 新遊戲']);busy=0;if(a==0){R=o.R;R.vr=R.vr||{};R.cl=R.cl||{};x=o.x;y=o.y}}
  enter(R.m,x,y)}
@@ -259,7 +260,7 @@ addEventListener('keyup',e=>{if(KM[e.key]===held)held=null});
 const it=i=>g.items.find(t=>t.id==i)||{n:'?',heal:0};
 async function shop(){for(;;){const L=g.items.filter(t=>t.price>0),a=await ask('歡迎光臨！ 🪙'+R.gold,[...L.map(t=>t.n+' '+t.price+'金'),'離開']);if(a>=L.length)return;const t=L[a];if(R.gold<t.price)await say('金幣不夠！');else{R.gold-=t.price;R.inv[t.id]=(R.inv[t.id]||0)+1}}}
 async function menu(){if(busy||!R||!P)return;busy=1;try{for(;;){const inv=Object.entries(R.inv).filter(([,n])=>n>0),L=inv.filter(([i])=>it(i).heal),a=await ask('❤ '+R.hp+'/30　🪙 '+R.gold+'\n道具：'+(inv.map(([i,n])=>it(i).n+'×'+n).join('、')||'無'),[...L.map(([i])=>'使用'+it(i).n),'📓 筆記本','📜 對話紀錄','💾 存檔','關閉']);
- if(a==L.length+3)return;if(a==L.length){await note();continue}if(a==L.length+1){await logv();continue}if(a==L.length+2){try{localStorage.setItem('rpgsave',JSON.stringify({t:g.title,R,x:P.x,y:P.y}));await say('已存檔！')}catch(e){await say('存檔失敗：儲存空間不足')}continue}
+ if(a==L.length+3)return;if(a==L.length){await note();continue}if(a==L.length+1){await logv();continue}if(a==L.length+2){try{localStorage.setItem(gameSaveKey(),JSON.stringify({t:g.title,R,x:P.x,y:P.y}));await say('已存檔！')}catch(e){await say('存檔失敗：儲存空間不足')}continue}
  R.inv[L[a][0]]--;R.hp=Math.min(30,R.hp+it(L[a][0]).heal)}}finally{busy=0}}
 const addDb=k=>{g[k].push(k=='items'?{id:uid(),n:'新道具',heal:0,price:0}:k=='clues'?{id:uid(),n:'新線索',d:''}:{id:uid(),n:'新敵人',hp:10,atk:2,gold:3,emo:'👹'});dbUI();sv()};
 function dbUI(){const f=(k,i,p,l,t)=>`<div style="flex:1;min-width:68px"><label>${l}</label><input ${t?'':'type=number'} value="${esc(g[k][i][p])}" oninput="g.${k}[${i}].${p}=${t?'this.value':'+this.value||0'};sv()"></div>`,d=(k,i)=>`<button class="chip" onclick="g.${k}.splice(${i},1);dbUI();sv()">✕</button>`;
