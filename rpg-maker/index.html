@@ -10,7 +10,7 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1726;--panel:#262034;--ink:#f1ecfa;--mute:#a79fb8;--line:#3b3350;--acc:#9a85ff;--acc2:#f2b73a;--on:#1b1726}}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
-.wrap{max-width:760px;margin:0 auto;padding:12px}
+.wrap{max-width:1180px;margin:0 auto;padding:12px}
 h1{font:700 20px/1.2 "Noto Serif TC","PMingLiU",serif;margin:4px 0 10px;letter-spacing:.04em}
 .tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto}
 .tabs button{flex:1;white-space:nowrap;padding:9px 8px;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
@@ -40,7 +40,7 @@ textarea{min-height:90px}
 .hide{display:none!important}
 body.public-game .tabs,body.public-game #warn,body.public-game #vmap,body.public-game #vstory,body.public-game #vas,body.public-game #vch,body.public-game #vau,body.public-game #vdb,body.public-game #vpub,body.public-game #vstyle,body.public-game #vstudio,body.public-game #vhelp{display:none!important}
 body.public-game #vplay{display:block!important}
-body.story-mode .wrap{max-width:1180px}
+body.public-game .wrap{max-width:760px}
 .story-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .story-grid{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);gap:12px;align-items:start}
 .story-side{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto}
@@ -730,7 +730,7 @@ let studioPart='entities';
 const TB=[['projects','📁 專案'],['map','🗺 地圖'],['studio','🎨 創作工作室'],['au','🎵 音效'],['screen','🎞 開始畫面'],['ui','🎛 玩家介面'],['db','📦 資料庫'],['play','▶ 試玩'],['pub','🚀 發布'],['help','❓ 教學']];
 $('tabs').innerHTML=TB.map(([k,n])=>`<button id="t${k}" onclick="go('${k}')">${n}</button>`).join('');
 function studioUI(){const host=$('studio-nav');host.innerHTML=STUDIO.map(([k,n])=>`<button class="chip ${k==studioPart?'on':''}" onclick="go('${k}')">${n}</button>`).join('');$('studio-overview').innerHTML=`<div class="studio-stat"><b>${AS('ch').length}</b> 人物圖</div><div class="studio-stat"><b>${AS('pt').length}</b> 頭像／立繪</div><div class="studio-stat"><b>${AS('obj').length+AS('bg').length}</b> 地圖素材</div><div class="studio-stat"><b>${g.maps.reduce((n,m)=>n+m.ev.length,0)}</b> 人物與物件</div>`}
-function go(k){const studio= k=='studio'||STUDIO.some(([q])=>q==k);if(k=='studio')k=studioPart;if(studio)studioPart=k;if(mode!=k&&['animations','screen','play'].includes(mode))animationSkip();if(mode=='play'&&k!='play')gameEntryRunId++;mode=k;document.body.classList.toggle('story-mode',k=='story');TB.forEach(([q])=>{$('v'+q).classList.toggle('hide',q!=(studio?'studio':k));$('t'+q).classList.toggle('on',q==(studio?'studio':k))});STUDIO.forEach(([q])=>$('v'+q).classList.toggle('hide',!(studio&&q==k)));if(studio)studioUI();bgmEl.pause();held=null;sprintHeld=false;$('ovl').style.display='none';pend=null;
+function go(k){const studio= k=='studio'||STUDIO.some(([q])=>q==k);if(k=='studio')k=studioPart;if(studio)studioPart=k;if(mode!=k&&['animations','screen','play'].includes(mode))animationSkip();if(mode=='play'&&k!='play')gameEntryRunId++;mode=k;TB.forEach(([q])=>{$('v'+q).classList.toggle('hide',q!=(studio?'studio':k));$('t'+q).classList.toggle('on',q==(studio?'studio':k))});STUDIO.forEach(([q])=>$('v'+q).classList.toggle('hide',!(studio&&q==k)));if(studio)studioUI();bgmEl.pause();held=null;sprintHeld=false;$('ovl').style.display='none';pend=null;
  if(k=='projects')projectUI();if(k=='map'){mapUI();selUI()}if(k=='entities'){entityUI();entityExtraUI()}if(k=='lights')lightUI();if(k=='animations')animationUI();if(k=='story')storyUI();if(k=='as')assetUI();if(k=='ch'){heroUI();chUI();pUI()}if(k=='style')styleUI();if(k=='au')auUI();if(k=='screen')screenUI();if(k=='ui')playerUI();if(k=='db')dbUI();if(k=='play'){applyGameStyle();if(playTestStart)startPlay('new');else openGameEntry()}if(k=='pub'){$('title').value=g.title;gen();if(cloudSession){listCloud();publicationStatus().catch(e=>cloudMessage(e.message,'publish-status'))}}}
 function projectUI(){const host=$('project-list');if(!host)return;host.innerHTML=projects.items.map(p=>`<div class="project-card"><b style="flex:1;min-width:140px">${esc(p.name)}</b><small>${p.cloudId?'☁ 已連結雲端':'💻 本機'} · ${new Date(p.updated).toLocaleString('zh-TW')}</small><button class="chip" ${p.id==projects.active?'disabled':''} onclick="switchProject('${p.id}')">${p.id==projects.active?'編輯中':'開啟'}</button><button class="chip" onclick="renameProject('${p.id}')">改名</button><button class="chip" onclick="deleteProject('${p.id}')">刪除</button></div>`).join('')}
 function resetProjectEditor(){clearTimeout(atmoSaveTimer);atmoPreview=false;atmoFocus=null;mi=0;storyMap=0;storyIndex=0;entityMap=0;entityIndex=0;sel=null;aSel=cSel='';hist=[];redoHist=[];R=null;P=null;zoomReady=!!g.editorZoom;zm=Math.max(.25,Math.min(6,+g.editorZoom||1));const p=activeProject();cloudProjectId=p.cloudOwner&&cloudSession?.user?.id&&p.cloudOwner!=cloudSession.user.id?'':p.cloudId||'';if(cloudProjectId)sessionStorage.setItem('rpg-cloud-project',cloudProjectId);else sessionStorage.removeItem('rpg-cloud-project');$('title').value=g.title;go('map')}
