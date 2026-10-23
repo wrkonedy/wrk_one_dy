@@ -19,6 +19,19 @@ h1{font:700 20px/1.2 "Noto Serif TC","PMingLiU",serif;margin:4px 0 10px;letter-s
 h2{font-size:14px;margin:8px 0;color:var(--mute);font-weight:700}
 canvas{width:100%;display:block;border:3px solid var(--ink);border-radius:6px;touch-action:none;background:#000}
 .chips,.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}
+.layer-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.layer-card{border:2px solid var(--line);border-radius:10px;padding:9px;background:var(--bg);min-width:0}
+.layer-card.selected{border-color:var(--acc)}
+.layer-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.layer-name{flex:1 1 180px;text-align:left;font-weight:700;overflow-wrap:anywhere}
+.layer-count{font-size:13px;color:var(--mute);white-space:nowrap}
+.layer-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px}
+.layer-controls label{display:inline-flex;align-items:center;gap:4px;margin:0 8px 0 0;white-space:nowrap}
+.layer-controls .chip{min-width:38px;padding:6px 9px}
+.layer-contents{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:8px;font-size:13px;color:var(--mute)}
+.layer-contents span{padding:2px 7px;border:1px solid var(--line);border-radius:6px;overflow-wrap:anywhere}
+.layer-contents .layer-empty{border-style:dashed}
+.layer-add{align-self:flex-start}
 .chip{padding:7px 10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;font:inherit;cursor:pointer;min-height:38px}
 .chip.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
 .chip i{display:inline-block;width:16px;height:16px;border-radius:3px;vertical-align:-3px;margin-right:4px;border:1px solid rgba(0,0,0,.3)}
@@ -131,7 +144,7 @@ body.public-game .wrap{max-width:calc(var(--game-screen-width,640px) + 48px)}
 <label><input type="checkbox" checked onchange="showCol=this.checked"> 顯示碰撞範圍（紅色＝走不過去）</label></div>
 <div class="box"><h2>① 地形（拖曳作畫）</h2><p class="hint">上傳正方形地板／牆面圖片後，選取圖片並在地圖上拖曳，就能逐格繪製。每格顯示為 32×32；建議畫 32×32 或 64×64 像素，64×64 會以清晰像素風縮小。可一次選多張圖片。</p><div class="row"><button class="btn" onclick="upTile()">＋上傳可繪製地形</button><span class="hint">上傳後會收進素材庫，切換地圖也能使用。</span></div><div class="chips" id="tl"></div><div class="chips" id="custom-tiles"></div><div id="tile-brush-details"></div><details><summary>地形預設 emoji（可清除）</summary><p class="hint">清除後會保留地形顏色與碰撞設定，只移除符號。</p><div id="tile-emoji-settings" class="ui-setting-grid"></div></details>
 <h2>② 我上傳的素材（可旋轉）</h2><div class="chips" id="al"></div>
-<h2>③ 工具</h2><div class="chips" id="tt"></div><h2>④ 圖層（素材會放在選中的圖層）</h2><div class="chips" id="ly"></div></div>
+<h2>③ 工具</h2><div class="chips" id="tt"></div><h2>④ 圖層（上方會蓋住下方；素材放在選中的圖層）</h2><p class="hint">下列內容是目前地圖的素材；地形筆刷與背景圖另在上方設定。</p><div class="layer-list" id="ly"></div></div>
 <div class="box" id="sel"></div>
 </section>
 
@@ -296,7 +309,7 @@ const TIPS={tile:'拖曳畫出地形。',asset:'點地圖放上素材；放之�
 const key=()=>tool.k=='tile'?'t'+tool.id:tool.k=='asset'?'a'+tool.id:tool.k;
 function hl(){document.querySelectorAll('[data-k]').forEach(b=>b.classList.toggle('on',b.dataset.k==key()));$('tip').textContent=TIPS[tool.k];tileBrushUI()}
 function tileBrushUI(){const host=$('tile-brush-details');if(!host)return;const a=tool.k=='tile'?tileAsset(tool.id):null;if(a?.k!='tile'){host.innerHTML='';return}host.innerHTML=`<div class="row" style="margin-top:8px"><img src="${a.src}" alt="${esc(a.n)}" width="48" height="48" style="image-rendering:pixelated"><b>${esc(a.n)}</b><label><input type="checkbox" ${a.passable!==0?'checked':''} onchange="g.assets['${tool.id.slice(5)}'].passable=this.checked?1:0;sv()"> 可通行</label><button class="chip" onclick="aSel='${tool.id.slice(5)}';go('as')">到素材庫編輯</button></div>`}
-function mapUI(){$('ms').innerHTML=O(g.maps.map((m,i)=>[i,m.name]),mi);$('mw').value=M().w||20;$('mh').value=M().h||14;if(!zoomReady)fit();else syncZoomUI();$('ly').innerHTML=[['🟫 下層：地板、地毯'],['🪑 中層：家具、物件'],['🌳 上層：蓋住角色']].map(([n],i)=>`<button class="chip ${curL==i?'on':''}" onclick="curL=${i};mapUI()">${n}</button><label style="display:inline-flex;align-items:center;gap:4px;margin:0"><input type="checkbox" ${show[i]?'checked':''} onchange="show[${i}]=this.checked?1:0"> 顯示</label>`).join('');
+function mapUI(){$('ms').innerHTML=O(g.maps.map((m,i)=>[i,m.name]),mi);$('mw').value=M().w||20;$('mh').value=M().h||14;if(!zoomReady)fit();else syncZoomUI();
  $('mbg').innerHTML=O([['','（無）'],...AS('bg')],M().bg);$('mbgm').innerHTML=O(bgmChoices(),M().bgm);$('map-art').innerHTML=O([['','（使用拼出的地圖）'],...AS('mapArt')],M().mapArt||'');$('map-dark').checked=!!M().dark;$('map-vision').value=M().vision||3;$('map-move-factor').value=M().moveFactor||1;$('map-dark-factor').value=M().darkMoveFactor||1.35;atmoControls();
  $('tl').innerHTML=TL.map((t,i)=>`<button class="chip" data-k="t${i}" onclick="tool={k:'tile',id:${i}};ft=${i};hl()"><i style="background:${t.c}"></i>${t.n}</button>`).join('');
  $('custom-tiles').innerHTML=AS('tile').map(([id,name])=>`<button class="chip" data-k="t${tileId(id)}" onclick="tool={k:'tile',id:'${tileId(id)}'};ft=tool.id;hl()"><img src="${g.assets[id].src}" alt="" width="32" height="32" style="image-rendering:pixelated;vertical-align:middle"> ${esc(name)}</button>`).join('');
@@ -320,7 +333,7 @@ function act(ev,drag){const m=M(),[x,y]=cellOf(ev),k=tool.k;if(atmoPreview){atmo
  else if(k=='start')g.start={...g.start,m:mi,x,y};
  else if(k=='sel'){const px=(ev.clientX-cv.getBoundingClientRect().left)/cv.getBoundingClientRect().width*W*T,py=(ev.clientY-cv.getBoundingClientRect().top)/cv.getBoundingClientRect().height*H*T;const e=[...m.ev].reverse().find(q=>q.objAsset?eventContains(q,px,py):q.x==x&&q.y==y),o=objectAt(m,px,py,curL)||objectAt(m,px,py);sel=e&&e.linkedObjectId!=o?.id?{e}:o?{o}:e?{e}:null;selUI()}
  else if(k=='ev'){let e=m.ev.find(q=>q.x==x&&q.y==y);if(!e){e=mkEv(x,y,'🧙','事件',[{t:'say',v:'你好！'}]);m.ev.push(e)}sel={e};selUI()}
- sv()}
+ sv();if(k=='asset'||k=='erase')queueLayerUI()}
 function undo(){const h=hist.pop();if(!h)return;redoHist.push([mi,JSON.stringify(g.maps[mi])]);mi=h[0];g.maps[mi]=JSON.parse(h[1]);sel=null;mapUI();selUI();sv()}
 function redo(){const h=redoHist.pop();if(!h)return;hist.push([mi,JSON.stringify(g.maps[mi])]);mi=h[0];g.maps[mi]=JSON.parse(h[1]);sel=null;mapUI();selUI();sv()}
 addEventListener('keydown',e=>{if(mode!='map'||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='z'){e.preventDefault();e.shiftKey?redo():undo()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()=='y'){e.preventDefault();redo()}});
@@ -614,11 +627,14 @@ function setMode(m){const a=cur();a.m=m;if(m=='d')a.fd=a.fd||[[],[],[],[]];chUI(
 function setActionTrigger(t){const a=cur();a.trigger=t;if(t!='manual')C().acts.forEach(x=>{if(x!=a&&x.trigger==t)x.trigger='manual'});chUI();sv()}
 function undoF(){const a=cur();(MO(a)=='d'?a.fd[dsel]:a.f).pop();chUI();sv()}
 function clrF(){const a=cur();if(MO(a)=='d')a.fd[dsel]=[];else a.f=[];chUI();sv()}
-function layUI(){$('ly').innerHTML=g.layers.map((l,i)=>`<div class="row" style="margin:3px 0"><button class="chip ${curL==l.id?'on':''}" onclick="curL=g.layers[${i}].id;layUI()">${esc(l.n)}</button><label style="display:inline-flex;gap:3px;align-items:center;margin:0"><input type="checkbox" ${show[l.id]===0?'':'checked'} onchange="show[g.layers[${i}].id]=this.checked?1:0"> 顯示</label><label style="display:inline-flex;gap:3px;align-items:center;margin:0"><input type="checkbox" ${l.t?'checked':''} onchange="g.layers[${i}].t=this.checked?1:0;sv()"> 蓋住角色</label><button class="chip" onclick="lmv(${i},-1)">▲</button><button class="chip" onclick="lmv(${i},1)">▼</button><button class="chip" onclick="lren(${i})">✎</button><button class="chip" onclick="ldel(${i})">🗑</button></div>`).join('')+'<button class="chip" onclick="ladd()">＋新增圖層</button>'}
+let layerUIQueued=false;
+function queueLayerUI(){if(layerUIQueued)return;layerUIQueued=true;requestAnimationFrame(()=>{layerUIQueued=false;if(mode=='map')layUI()})}
+function layerContents(m,id){const names=new Map();let total=0;for(const o of m.ob||[]){if(lay(o)!=id)continue;total++;const n=g.assets[o.a]?.n||'已移除的素材';names.set(n,(names.get(n)||0)+1)}return{total,names}}
+function layUI(){const host=$('ly');if(!host)return;host.innerHTML=g.layers.map((l,i)=>({l,i})).reverse().map(({l,i})=>{const {total,names}=layerContents(M(),l.id),selected=curL==l.id;return `<div class="layer-card ${selected?'selected':''}"><div class="layer-head"><button class="chip layer-name ${selected?'on':''}" onclick="curL=g.layers[${i}].id;layUI()" aria-pressed="${selected}">${esc(l.n)}</button><span class="layer-count">${total} 個素材</span></div><div class="layer-contents">${names.size?[...names].map(([n,count])=>`<span>${esc(n)} × ${count}</span>`).join(''):'<span class="layer-empty">這層尚未放置素材</span>'}</div><div class="layer-controls"><label><input type="checkbox" ${show[l.id]===0?'':'checked'} onchange="show[g.layers[${i}].id]=this.checked?1:0;sv()"> 顯示</label><label><input type="checkbox" ${l.t?'checked':''} onchange="g.layers[${i}].t=this.checked?1:0;sv()"> 蓋住角色</label><button class="chip" title="上移圖層" aria-label="上移${esc(l.n)}" onclick="lmv(${i},1)" ${i==g.layers.length-1?'disabled':''}>↑</button><button class="chip" title="下移圖層" aria-label="下移${esc(l.n)}" onclick="lmv(${i},-1)" ${i==0?'disabled':''}>↓</button><button class="chip" title="重新命名" aria-label="重新命名${esc(l.n)}" onclick="lren(${i})">✎</button><button class="chip" title="刪除圖層" aria-label="刪除${esc(l.n)}" onclick="ldel(${i})" ${g.layers.length<2?'disabled':''}>🗑</button></div></div>`}).join('')+'<button class="chip layer-add" onclick="ladd()">＋新增圖層</button>'}
 function ladd(){const id=uid();g.layers.push({id,n:'圖層'+(g.layers.length+1),t:0});curL=id;sv();layUI()}
 function lren(i){const n=prompt('圖層名稱',g.layers[i].n);if(n){g.layers[i].n=n;sv();layUI()}}
 function lmv(i,d){const a=g.layers,j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];sv();layUI()}
-function ldel(i){if(g.layers.length<2||!confirm('刪除這個圖層，上面的素材也會一起刪掉，確定嗎？'))return;const id=g.layers[i].id;g.maps.forEach(m=>m.ob=m.ob.filter(o=>lay(o)!=id));g.layers.splice(i,1);curL=g.layers[0].id;sv();layUI()}
+function ldel(i){if(g.layers.length<2||!confirm('刪除這個圖層及所有地圖中放在這層的素材與其互動，確定嗎？'))return;const id=g.layers[i].id;g.maps.forEach(m=>{for(const o of [...m.ob])if(lay(o)==id)removeMapObject(m,o)});g.layers.splice(i,1);curL=g.layers[0].id;sel=null;selUI();sv();layUI()}
 const lay=o=>o.L??((g.assets[o.a]||{}).top?2:1);
 function dLay(x,m,L){if(show[L]===0)return;const state=mode=='play'?m.ob.map((o,i)=>{const linked=linkedEvent(m,o),p=runtimeObject(o,i);return (linked&&vis(linked,m.ev.indexOf(linked))?1:linked?0:1)+':'+p.x+','+p.y}).join('|'):'edit';let e=LC.get(m);if(!e||e.v!=ver||e.state!=state){e={v:ver,state};LC.set(m,e)}let c=e[L];if(!c){c=document.createElement('canvas');c.width=W*T;c.height=H*T;const k=c.getContext('2d');let ok=1;m.ob.forEach((base,i)=>{const linked=linkedEvent(m,base);if(mode=='play'&&linked&&!vis(linked,m.ev.indexOf(linked)))return;const o=mode=='play'?runtimeObject(base,i):base;if(lay(o)!=L)return;const a=g.assets[o.a];if(!a)return;const v=a.vars?.[o.r],im=img(v||a.src);if(!im){ok=0;return}const r=objectVisualRect(o);k.save();k.imageSmoothingEnabled=false;k.translate(r.x+r.w/2,r.y+r.h/2);if(!v)k.rotate((+o.r||0)*Math.PI/180);k.drawImage(im,-r.w/2,-r.h/2,r.w,r.h);k.restore()});if(ok)e[L]=c}x.drawImage(c,0,0)}
 function dObs(x,m,top){g.layers.forEach(l=>{if(!l.t==!top)dLay(x,m,l.id)})}
