@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>像素工坊 · RPG 製作器</title><script>if(/[?&]game=/.test(location.search))document.documentElement.classList.add('public-boot')</script><link rel="icon" href="data:,">
+<title>像素工坊 · RPG 製作器</title><meta name="description" content="像素工坊：在瀏覽器裡製作像素風解謎 RPG 的編輯器，做好就能用連結分享給朋友玩。"><meta property="og:type" content="website"><meta property="og:title" content="像素工坊 · RPG 製作器"><meta property="og:description" content="在瀏覽器裡製作像素風解謎 RPG，做好就能用連結分享給朋友玩。"><script>if(/[?&]game=/.test(location.search))document.documentElement.classList.add('public-boot')</script><link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -1570,6 +1570,6 @@ async function loadPublicGame(){const id=new URLSearchParams(location.search).ge
  }catch(e){document.body.classList.add('public-game');document.documentElement.classList.remove('public-boot');$('vplay').innerHTML='<div class="box"><h2>無法開啟遊戲</h2><p>'+esc(e.message)+'</p></div>';return false}}
 function loop(ts){if(mode=='map')edDraw();else if(mode=='play')pDraw(ts);else if(mode=='ch')chDraw();requestAnimationFrame(loop)}
 // Stamped by tools/dev.cjs sync: date and content fingerprint, so a stale cached page is easy to spot.
-const EDITOR_BUILD='2026-10-26 09:39 · eaf3fbc';$('editor-build').textContent=EDITOR_BUILD?'版本 '+EDITOR_BUILD:'';
+const EDITOR_BUILD='2026-10-26 10:16 · 6421367';$('editor-build').textContent=EDITOR_BUILD?'版本 '+EDITOR_BUILD:'';
 go('map');$('hosted-url').value=localStorage.getItem('rpg-hosted-url')||DEFAULT_HOSTED_URL;restoreSession();loadPublicGame();requestAnimationFrame(loop);
 </script></body></html>
