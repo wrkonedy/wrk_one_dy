@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges">
+  <rect width="32" height="32" fill="none"/>
+  <rect x="1" y="1" width="30" height="30" fill="#5c4029"/>
+  <rect x="2" y="2" width="28" height="28" fill="#c59a55"/>
+  <rect x="4" y="4" width="24" height="24" fill="#6f5339"/>
+  <rect x="5" y="5" width="22" height="22" fill="#332f36"/>
+  <path d="M6 26l5-7h10l5 7z" fill="#8e4055"/>
+  <path d="M10 21l4-4h5l4 4v5H10z" fill="#a94c5c"/>
+  <path d="M12 15h8v7h-8z" fill="#d8b4a0"/>
+  <path d="M10 9l3-4h7l3 4v9l-3 2v-8l-2-2h-5l-2 3v7l-2-2z" fill="#2e2023"/>
+  <path d="M11 11l3-3h5l2 3v7l-4 3h-2l-4-3z" fill="#ead0b5"/>
+  <path d="M11 10l3-4h6l3 4-2 2-2-3h-6l-2 3z" fill="#48302a"/>
+  <path d="M13 15h3m2 0h3" stroke="#634b49" stroke-width="1"/>
+  <rect x="16" y="18" width="2" height="1" fill="#a86670"/>
+  <path d="M2 2h28M2 29h28M2 2v28M29 2v28" fill="none" stroke="#efcf84" stroke-width="1"/>
+  <path d="M1 1h3v3H1zm27 0h3v3h-3zM1 28h3v3H1zm27 0h3v3h-3z" fill="#e2b76b"/>
+</svg>
