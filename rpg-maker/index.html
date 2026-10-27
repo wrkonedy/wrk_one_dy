@@ -1455,7 +1455,23 @@ let titleSelection=0;function titlePaint(){const buttons=[...$('play-title').que
 function screenPreview(){renderTitle($('title-preview'),false)}
 let gameEntryRunId=0;
 let playAssetsRunId=0;
-async function preloadGameImages(progress){const sources=[...new Set(Object.values(g.assets||{}).filter(a=>a?.src&&a.k!='au'&&!/^data:audio\//i.test(a.src)).map(a=>a.src))],total=sources.length;let done=0,failed=0;progress(done,total);await Promise.all(sources.map(src=>new Promise(resolve=>{let image=IM[src],settled=false;const finish=async(ok)=>{if(settled)return;settled=true;if(ok&&image?.decode)try{await image.decode()}catch(error){ok=!!image.naturalWidth}if(!ok)failed++;progress(++done,total);resolve()};if(!image){image=IM[src]=new Image()}if(image.complete&&image.src){void finish(!!image.naturalWidth);return}image.addEventListener('load',()=>{void finish(true)},{once:true});image.addEventListener('error',()=>{void finish(false)},{once:true});if(!image.src)image.src=src;setTimeout(()=>{void finish(false)},30000)})));return failed}
+async function preloadGameImages(progress){
+ const sources=[...new Set(Object.values(g.assets||{}).filter(a=>a?.src&&a.k!='au'&&!/^data:audio\//i.test(a.src)).map(a=>a.src))],total=sources.length;
+ let done=0,failed=0,next=0;progress(done,total);
+ const load=src=>new Promise(resolve=>{
+  let image=IM[src],settled=false,timer;
+  const finish=async ok=>{if(settled)return;settled=true;clearTimeout(timer);if(ok&&image?.decode)try{await image.decode()}catch(error){ok=!!image.naturalWidth}if(!ok)failed++;progress(++done,total);resolve()};
+  if(!image)image=IM[src]=new Image();
+  if(image.complete&&image.src){void finish(!!image.naturalWidth);return}
+  image.addEventListener('load',()=>{void finish(true)},{once:true});
+  image.addEventListener('error',()=>{void finish(false)},{once:true});
+  if(!image.src)image.src=src;
+  timer=setTimeout(()=>{void finish(false)},45000);
+ });
+ const worker=async()=>{while(next<total)await load(sources[next++])};
+ await Promise.all(Array.from({length:Math.min(10,total)},worker));
+ return failed;
+}
 function finishPlayEntry(){if(mode!='play')return;$('play-loading').classList.add('hide');$('play-loading-continue').classList.add('hide');if(playTestStart)void startPlay('new');else void openGameEntry()}
 async function enterPlayReady(){const token=++playAssetsRunId,loading=$('play-loading'),status=$('play-loading-status');$('play-title').classList.add('hide');$('play-game').classList.add('hide');$('play-splash').classList.add('hide');$('play-loading-continue').classList.add('hide');loading.classList.remove('hide');const failed=await preloadGameImages((done,total)=>{if(token==playAssetsRunId)status.textContent=`已載入 ${done}／${total} 張`});if(token!=playAssetsRunId||mode!='play')return;if(failed){status.textContent=`有 ${failed} 張圖片無法載入。可檢查素材庫圖片，或先繼續測試。`;$('play-loading-continue').classList.remove('hide');return}finishPlayEntry()}
 async function openGameEntry(){const token=++gameEntryRunId,id=g.titleScreen.splashAnimation,stage=$('play-splash');if(!animationById(id)){showTitleScreen();return}stopMusic();R=null;P=null;$('play-title').classList.add('hide');$('play-game').classList.add('hide');stage.classList.remove('hide');try{await playAnimation(id,{preview:true,splash:true,stage})}finally{if(token==gameEntryRunId&&mode=='play')showTitleScreen()}}
