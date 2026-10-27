@@ -1460,7 +1460,7 @@ async function preloadGameImages(progress){
  let done=0,failed=0,next=0;progress(done,total);
  const load=src=>new Promise(resolve=>{
   let image=IM[src],settled=false,timer;
-  const finish=async ok=>{if(settled)return;settled=true;clearTimeout(timer);if(ok&&image?.decode)try{await image.decode()}catch(error){ok=!!image.naturalWidth}if(!ok)failed++;progress(++done,total);resolve()};
+  const finish=async ok=>{if(settled)return;settled=true;clearTimeout(timer);if(ok&&image?.decode)try{await image.decode()}catch(error){ok=!!image.naturalWidth}if(!ok){failed++;console.warn('遊戲圖片載入失敗',Object.values(g.assets||{}).find(a=>a?.src===src)?.n||src,src)}progress(++done,total);resolve()};
   if(!image)image=IM[src]=new Image();
   if(image.complete&&image.src){void finish(!!image.naturalWidth);return}
   image.addEventListener('load',()=>{void finish(true)},{once:true});
